@@ -11,7 +11,7 @@ from typing import Optional
 import click
 
 # Local package imports
-from jo_serv.example_module import ExampleClass
+from jo_serv.server.server import create_server
 
 
 # Define this function as a the main command entrypoint
@@ -53,9 +53,11 @@ def main(
         tmp_logger = logging.getLogger(__name__)
         tmp_logger.warning("No log config provided, using default configuration")
     logger = logging.getLogger(__name__)
-    instance = ExampleClass()
-    for i in range(iterations):
-        logger.info(f"Iteration number {i}: {instance.add(i, i)}")
+
+    logger.info("Start server")
+    app = create_server()
+    app.run(host="0.0.0.0", port=7070, debug=True, use_reloader=False)  # nosec
+    logger.info("Server is running")
 
 
 if __name__ == "__main__":

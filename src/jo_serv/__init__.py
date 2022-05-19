@@ -1,8 +1,5 @@
 """Top-level package for jo_serv.
 
-.. include:: ../../README.md
-.. include:: ../../readme/Quickstart.md
-.. include:: ../../readme/Deep-dive.md
 """
 
 __author__ = "Piedpied"

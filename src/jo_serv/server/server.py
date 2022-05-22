@@ -4,7 +4,10 @@ import json
 import logging
 import os
 import re
+import time
+
 import mariadb  # type: ignore
+import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
 
@@ -135,6 +138,41 @@ def create_server() -> Flask:
                         json_data.get("token") + ":" + json_data.get("username") + "\n",
                     )
                     open(data_dir + "/tokens.txt", "w").write(raw_txt)
+        return Response(response="fdp", status=200)
+
+    @app.route("/cluedo", methods=["POST"])
+    def cluedo() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+        username = json_data.get("cluedo")
+
+        if os.path.exists("lasttimecluedo"):
+            last_time = float(open("lasttimecluedo", "r").read())
+        else:
+            last_time = time.time() - 16 * 60
+        if time.time() > (last_time + 15 * 60):  # filter 15 mins
+            logger.info("cluedotime")
+            tokens = open("tokens.txt", "r").readlines()
+            for token in tokens:
+                if "ExponentPushToken" in token:
+                    data = {
+                        "to": token.split(":")[0].replace(":", ""),
+                        "title": "CLUEDO!",
+                        "body": "Demandé par : %s" % username,
+                    }
+                    req = requests.post(
+                        "https://exp.host/--/api/v2/push/send", data=data
+                    )
+                    if re.findall("DeviceNotRegistered", req.text):
+                        logger.info(
+                            "device not registered anymore so removing the line"
+                        )
+                        full_txt = open("tokens.txt", "r").read()
+                        open(data_dir + "/tokens.txt", "w").write(full_txt.replace(token, ""))
+            open(data_dir + "/lasttimecluedo", "w").write(str(time.time()))
+        else:
+            logger.info("ignore as it's less than 15 mins since last")
         return Response(response="fdp", status=200)
 
     return app

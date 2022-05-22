@@ -88,11 +88,26 @@ def create_server(data_dir: str) -> Flask:
         """Teams endpoints
 
         Returns:
-            Response: The chat file content
+            Response: The teams file content
         """
         if request.method == "GET":
             logger.info(f"Get on /teams/{name}")
             path = data_dir + "/teams/" + name
+            with open(path, "rb") as file:
+                return Response(response=file.read(), status=200)
+
+        return Response(response="Error on endpoint teams", status=404)
+
+    @app.route("/results/<name>", methods=["GET", "POST"])
+    def results(name: str) -> Response:
+        """Results endpoints
+
+        Returns:
+            Response: the asked result content
+        """
+        if request.method == "GET":
+            logger.info(f"Get on /results/{name}")
+            path = data_dir + "/results/" + name
             with open(path, "rb") as file:
                 return Response(response=file.read(), status=200)
 

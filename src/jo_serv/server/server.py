@@ -11,7 +11,7 @@ import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
 
-def create_server(data_dir : str) -> Flask:
+def create_server(data_dir: str) -> Flask:
     """Create the server
 
     Args:
@@ -116,9 +116,11 @@ def create_server(data_dir : str) -> Flask:
                         json_data.get("token") + ":" + json_data.get("username") + "\n"
                     )
                 else:
-                    open(data_dir + "/tokens.txt", "a").write(json_data.get("token") + ":\n")
+                    open(data_dir + "/tokens.txt", "a").write(
+                        json_data.get("token") + ":\n"
+                    )
             elif json_data.get("username") != "":
-                lines = open(data_dir +"/tokens.txt", "r").readlines()
+                lines = open(data_dir + "/tokens.txt", "r").readlines()
                 for local_token in lines:
                     if json_data.get("token") in local_token:
                         if (
@@ -174,10 +176,47 @@ def create_server(data_dir : str) -> Flask:
                             "device not registered anymore so removing the line"
                         )
                         full_txt = open("tokens.txt", "r").read()
-                        open(data_dir + "/tokens.txt", "w").write(full_txt.replace(token, ""))
+                        open(data_dir + "/tokens.txt", "w").write(
+                            full_txt.replace(token, "")
+                        )
             open(data_dir + "/lasttimecluedo", "w").write(str(time.time()))
         else:
             logger.info("ignore as it's less than 15 mins since last")
+        return Response(response="fdp", status=200)
+
+    @app.route("/pushnotif", methods=["POST"])
+    def pushnotif() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+        to_req = json_data.get("to")
+        title = json_data.get("title")
+        body = json_data.get("body")
+
+        tokens = open(data_dir + "/tokens.txt", "r").readlines()
+        if to_req == "all":
+            logger.info("pushing to all!")
+            for token in tokens:
+                if "ExponentPushToken" in token:
+                    data = {
+                        "to": token.split(":")[0].replace(":", ""),
+                        "title": title,
+                        "body": body,
+                    }
+                    requests.post("https://exp.host/--/api/v2/push/send", data=data)
+                    logger.info("Notification sent to all!")
+        else:
+            logger.info(f"pushing to: {to_req}")
+            for token in tokens:
+                if to_req in token:
+                    if "ExponentPushToken" in token:
+                        data = {
+                            "to": token.split(":")[0].replace(":", ""),
+                            "title": title,
+                            "body": body,
+                        }
+                        requests.post("https://exp.host/--/api/v2/push/send", data=data)
+                        logger.info("Notification sent to all!")
         return Response(response="fdp", status=200)
 
     return app

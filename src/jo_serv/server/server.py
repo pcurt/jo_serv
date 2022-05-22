@@ -1,6 +1,9 @@
 # Standard lib imports
+import hashlib
+import json
 import logging
 
+import mariadb  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
 
@@ -10,9 +13,15 @@ def create_server() -> Flask:
     Returns:
         Flask: The server
     """
-    app = Flask(__name__)
     logger = logging.getLogger(__name__)
-    logger.info("Initialization success")
+    logger.info("Create the server")
+    app = Flask(__name__)
+    try:
+        conn = mariadb.connect(user="root", database="JO")
+        cur = conn.cursor()
+        conn.autocommit = True
+    except mariadb.Error as e:
+        logger.error(f"Error connecting to MariaDB Platform: {e}")
 
     @app.route("/", methods=["GET", "POST"])
     def home() -> Response:
@@ -30,12 +39,25 @@ def create_server() -> Flask:
         Returns:
             Response: 200 if login is success
         """
-        logger.info("Login")
-        # TODO
-        if request.method == "GET":
-            logger.info("c'est Open bar")
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
 
-        return Response(response="Logged IN ", status=200)
+        rcv_user = json_data["username"]
+        rcv_password = hashlib.sha384(str.encode(json_data["password"])).hexdigest()
+
+        logger.info(f" User {rcv_user} is trying to login")
+
+        cur.execute("SELECT * from users")
+        for (id, user, pwd, autho, date) in cur:
+            logger.debug(f"{id} {user} {pwd} {autho} {date}")
+            if rcv_user == user:
+                if rcv_password == pwd:
+                    logger.info(f"Receive correct password for {user}")
+                    return Response(response="Logged IN ", status=200)
+                else:
+                    logger.info(f"Receive invalid password for {user}")
+
+        return Response(response="Wrong password ", status=403)
 
     @app.route("/chat/<name>", methods=["GET", "POST"])
     def chat(name: str) -> Response:

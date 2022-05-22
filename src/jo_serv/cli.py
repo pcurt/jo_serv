@@ -15,15 +15,7 @@ from jo_serv.server.server import create_server
 
 
 # Define this function as a the main command entrypoint
-@click.command()
-# Create an argument that expects an integer, and has a default value
-@click.option(
-    "-n",
-    "--iterations",
-    help="Number of times to display the sample text",
-    type=int,
-    default=1,
-)
+@click.group()
 # Create an argument that expects a path to a valid file
 @click.option(
     "--log-config",
@@ -40,7 +32,6 @@ from jo_serv.server.server import create_server
 # Display the help if no option is provided
 @click.help_option()
 def main(
-    iterations: int,
     log_config: Optional[str],
 ) -> None:
     """Console script for jo_serv."""
@@ -53,11 +44,22 @@ def main(
         tmp_logger = logging.getLogger(__name__)
         tmp_logger.warning("No log config provided, using default configuration")
     logger = logging.getLogger(__name__)
+    logger.info("Logger initialized")
 
+
+@main.command()
+def srv() -> None:
+    logger = logging.getLogger((__name__))
     logger.info("Start server")
     app = create_server()
     app.run(host="0.0.0.0", port=7070, debug=True, use_reloader=False)  # nosec
     logger.info("Server is running")
+
+
+@main.command()
+def tools() -> None:
+    logger = logging.getLogger((__name__))
+    logger.info("Start tools")
 
 
 if __name__ == "__main__":

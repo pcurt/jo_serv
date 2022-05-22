@@ -113,6 +113,21 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on endpoint teams", status=404)
 
+    @app.route("/athletes/<name>", methods=["GET", "POST"])
+    def athletes(name: str) -> Response:
+        """athletes endpoints
+
+        Returns:
+            Response: the asked athletes content
+        """
+        if request.method == "GET":
+            logger.info(f"Get on /athletes/{name}")
+            path = data_dir + "/athletes/" + name
+            with open(path, "rb") as file:
+                return Response(response=file.read(), status=200)
+
+        return Response(response="Error on endpoint teams", status=404)
+
     @app.route("/pushtoken", methods=["POST"])
     def pushtoken() -> Response:
         decode_data = request.data.decode("utf-8")

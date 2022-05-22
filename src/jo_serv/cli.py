@@ -47,11 +47,26 @@ def main(
     logger.info("Logger initialized")
 
 
+@click.option(
+    "--data-dir",
+    help="Path to the data dir",
+    default="./",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
+)
 @main.command()
-def srv() -> None:
+def srv(
+    data_dir: str,
+) -> None:
     logger = logging.getLogger((__name__))
     logger.info("Start server")
-    app = create_server()
+    logger.info(f"{data_dir}")
+    app = create_server(data_dir=data_dir)
     app.run(host="0.0.0.0", port=7070, debug=True, use_reloader=False)  # nosec
     logger.info("Server is running")
 

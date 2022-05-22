@@ -11,12 +11,16 @@ import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
 
-def create_server() -> Flask:
+def create_server(data_dir : str) -> Flask:
     """Create the server
+
+    Args:
+        data_dir (str): Path to data directory
 
     Returns:
         Flask: The server
     """
+    data_dir = data_dir
     logger = logging.getLogger(__name__)
     logger.info("Create the server")
     app = Flask(__name__)
@@ -73,7 +77,7 @@ def create_server() -> Flask:
         """
         if request.method == "GET":
             logger.info(f"Get on /chat/{name}")
-            path = "chat/" + name
+            path = data_dir + "/chat/" + name
             with open(path, "rb") as file:
                 return Response(response=file.read(), status=200)
 
@@ -88,7 +92,7 @@ def create_server() -> Flask:
         """
         if request.method == "GET":
             logger.info(f"Get on /teams/{name}")
-            path = "teams/" + name
+            path = data_dir + "/teams/" + name
             with open(path, "rb") as file:
                 return Response(response=file.read(), status=200)
 
@@ -102,8 +106,8 @@ def create_server() -> Flask:
         logger.info(f"Data received : {decode_data}")
 
         if json_data.get("token"):
-            if not os.path.exists("tokens.txt"):
-                open("tokens.txt", "w")
+            if not os.path.exists(data_dir + "/tokens.txt"):
+                open(data_dir + "/tokens.txt", "w")
             if (
                 json_data.get("token") not in open(data_dir + "/tokens.txt", "r").read()
             ):  # just to be sure we don't write again the same
@@ -148,13 +152,13 @@ def create_server() -> Flask:
         logger.info(f"Data received : {decode_data}")
         username = json_data.get("cluedo")
 
-        if os.path.exists("lasttimecluedo"):
-            last_time = float(open("lasttimecluedo", "r").read())
+        if os.path.exists(data_dir + "/lasttimecluedo"):
+            last_time = float(open(data_dir + "/lasttimecluedo", "r").read())
         else:
             last_time = time.time() - 16 * 60
         if time.time() > (last_time + 15 * 60):  # filter 15 mins
             logger.info("cluedotime")
-            tokens = open("tokens.txt", "r").readlines()
+            tokens = open(data_dir + "/tokens.txt", "r").readlines()
             for token in tokens:
                 if "ExponentPushToken" in token:
                     data = {

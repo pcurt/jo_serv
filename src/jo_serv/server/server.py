@@ -32,15 +32,6 @@ def create_server(data_dir: str) -> Flask:
     except mariadb.Error as e:
         logger.error(f"Error connecting to MariaDB Platform: {e}")
 
-    @app.route("/", methods=["GET", "POST"])
-    def home() -> Response:
-        """Main page for server
-
-        Returns:
-            Response: Welcome message
-        """
-        return Response(response="This is the JO server", status=200)
-
     @app.route("/login", methods=["GET", "POST"])
     def login() -> Response:
         """Login page

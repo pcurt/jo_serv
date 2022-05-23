@@ -10,7 +10,7 @@ JO server source code
 
 ## Development Quickstart
 
-A quickstart guide/cheatsheet is [available here](./readme/Quickstart.md), that lists the useful commands when developing this package.
+A quickstart guide/cheatsheet is [available here](./Quickstart.md), that lists the useful commands when developing this package.
 
 ## Installation
 

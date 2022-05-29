@@ -59,7 +59,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Wrong password ", status=403)
 
-    @app.route("/chat/<name>", methods=["GET", "POST"])
+    @app.route("/chat/<path:name>", methods=["GET", "POST"])
     def chat(name: str) -> Response:
         """Chat endpoints
 
@@ -74,7 +74,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on endpoint chat", status=404)
 
-    @app.route("/teams/<name>", methods=["GET", "POST"])
+    @app.route("/teams/<path:name>", methods=["GET", "POST"])
     def teams(name: str) -> Response:
         """Teams endpoints
 
@@ -89,7 +89,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on endpoint teams", status=404)
 
-    @app.route("/results/<name>", methods=["GET", "POST"])
+    @app.route("/results/<path:name>", methods=["GET", "POST"])
     def results(name: str) -> Response:
         """Results endpoints
 
@@ -104,7 +104,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on endpoint teams", status=404)
 
-    @app.route("/athletes/<name>", methods=["GET", "POST"])
+    @app.route("/athletes/<path:name>", methods=["GET", "POST"])
     def athletes(name: str) -> Response:
         """athletes endpoints
 

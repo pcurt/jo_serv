@@ -10,13 +10,15 @@ import mariadb  # type: ignore
 import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
-from jo_serv.tools.tools import generate_pizza_results
-from jo_serv.tools.tools import trigger_tas_dhommes
-from jo_serv.tools.tools import update_global_results
-from jo_serv.tools.tools import update_list
-from jo_serv.tools.tools import update_playoff_match
-from jo_serv.tools.tools import update_poules_match
-from jo_serv.tools.tools import user_is_authorized
+from jo_serv.tools.tools import (
+    generate_pizza_results,
+    trigger_tas_dhommes,
+    update_global_results,
+    update_list,
+    update_playoff_match,
+    update_poules_match,
+    user_is_authorized,
+)
 
 
 def create_server(data_dir: str) -> Flask:

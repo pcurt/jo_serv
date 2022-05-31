@@ -4,6 +4,7 @@
 import logging
 import logging.config
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +13,7 @@ import click
 
 # Local package imports
 from jo_serv.server.server import create_server
+from jo_serv.tools.event import event_handler
 
 
 # Define this function as a the main command entrypoint
@@ -66,9 +68,13 @@ def srv(
     logger = logging.getLogger((__name__))
     logger.info("Start server")
     logger.info(f"{data_dir}")
+
+    event = threading.Thread(target=event_handler)
+    event.start()
+
     app = create_server(data_dir=data_dir)
     app.run(host="0.0.0.0", port=7070, debug=True, use_reloader=False)  # nosec
-    logger.info("Server is running")
+    logger.info("Server is stopped")
 
 
 @main.command()

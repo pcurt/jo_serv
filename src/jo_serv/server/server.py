@@ -10,6 +10,14 @@ import mariadb  # type: ignore
 import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
+from jo_serv.tools.tools import generate_pizza_results
+from jo_serv.tools.tools import trigger_tas_dhommes
+from jo_serv.tools.tools import update_global_results
+from jo_serv.tools.tools import update_list
+from jo_serv.tools.tools import update_playoff_match
+from jo_serv.tools.tools import update_poules_match
+from jo_serv.tools.tools import user_is_authorized
+
 
 def create_server(data_dir: str) -> Flask:
     """Create the server
@@ -70,8 +78,9 @@ def create_server(data_dir: str) -> Flask:
             logger.info(f"Get on /chat/{name}")
             path = data_dir + "/chat/" + name
             with open(path, "rb") as file:
+                logger.info(f"Read files {path}")
                 return Response(response=file.read(), status=200)
-
+        logger.error(f"Error reading files {path}")
         return Response(response="Error on endpoint chat", status=404)
 
     @app.route("/teams/<path:name>", methods=["GET", "POST"])
@@ -237,6 +246,47 @@ def create_server(data_dir: str) -> Flask:
                         }
                         requests.post("https://exp.host/--/api/v2/push/send", data=data)
                         logger.info("Notification sent to all!")
+        return Response(response="fdp", status=200)
+
+    @app.route("/pushmatch", methods=["POST"])
+    def pushmatch() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+        username = json_data.get("username")
+        sport = json_data.get("sport")
+        match = json_data.get("match")
+        type = json_data.get("type")
+
+        if sport == "Pizza":
+            logger.info("Push for pizza")
+            trigger_tas_dhommes(match, username, data_dir)
+            update_list(f"{sport}/{username}", match, data_dir)
+            generate_pizza_results(data_dir)
+        else:
+            if user_is_authorized(username, sport, data_dir):
+                logger.info("User is authorized")
+                logger.info(f"Type is {type}")
+                if type == "playoff":
+                    match_id = int(match["uniqueId"])
+                    logger.info(
+                        f"update_playoff {sport}, {match_id}, {match}, {data_dir}"
+                    )
+                    update_playoff_match(sport, match_id, match, data_dir)
+                    logger.info("update_playoff_match")
+                elif type == "poules":
+                    match_id = int(match["uniqueId"])
+                    update_poules_match(sport, match_id, match, data_dir)
+                elif type == "liste":
+                    update_list(sport, match, data_dir)
+            else:
+                logger.info("User in not authorized")
+        logger.info("update_global_results")
+        update_global_results(data_dir)
+        logger.info("Match is pushed")
+
+        # fix_json() # FIXME to delete ?
+        # log(sport, username, data) # FIXME to delete ?
         return Response(response="fdp", status=200)
 
     return app

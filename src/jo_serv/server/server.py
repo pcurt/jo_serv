@@ -308,22 +308,24 @@ def create_server(data_dir: str) -> Flask:
             if team["Players"] == "":
                 teams.remove(team)
         file_name = get_file_name(sport, data_dir)
-        with open(f"teams/{file_name}", "w") as file:
+        with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(dict(Teams=teams), file, ensure_ascii=False)
         sport_config = get_sport_config(sport, data_dir)
         if sport_config["Type"] == "Table":
             table = generate_table(teams, sport_config["Teams per match"])
             file_name = file_name[:-5] + "_playoff.json"
-            with open(f"teams/{file_name}", "w") as file:
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(table, file, ensure_ascii=False)
         elif sport_config["Type"] == "Pool":
             pools = generate_pools(teams)
             file_name = file_name[:-5] + "_poules.json"
-            with open(f"teams/{file_name}", "w") as file:
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(pools, file, ensure_ascii=False)
         elif sport_config["Type"] == "Series":
             series = generate_series(teams, sport_config)
             file_name = file_name[:-5] + "_series.json"
-            with open(f"teams/{file_name}", "w") as file:
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
+        return Response(response="fdp", status=200)
+
     return app

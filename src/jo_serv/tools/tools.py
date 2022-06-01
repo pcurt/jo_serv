@@ -233,11 +233,11 @@ def generate_pools(teams: list) -> Dict[str, list]:
 
 def generate_series(teams: list, config: Any) -> Dict[str, list]:
     print(teams)
-    series : Dict[str, list] = dict(Series=[])
+    series: Dict[str, list] = dict(Series=[])
     if "Teams per match" in config:
         levels = 0
         teams_per_match = config["Teams per match"]
-        nb_teams : float = len(teams)
+        nb_teams: float = len(teams)
         while nb_teams > teams_per_match:
             nb_teams /= 2
             levels += 1

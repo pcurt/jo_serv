@@ -15,7 +15,6 @@ from jo_serv.tools.tools import (
     generate_pools,
     generate_series,
     generate_table,
-    get_file_name,
     get_sport_config,
     trigger_tas_dhommes,
     update_global_results,

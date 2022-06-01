@@ -30,8 +30,7 @@ def store_infos(column: Any, athletes: dict, to_store: Any) -> dict:
     return athletes
 
 
-def get_sport_config(sport_name: Any, data_dir: str) -> Any:
-    file_name = get_file_name(sport_name, data_dir)
+def get_sport_config(file_name: str, data_dir: str) -> Any:
     return json.load(open(f"{data_dir}/configs/{file_name}"))
 
 

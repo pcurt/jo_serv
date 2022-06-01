@@ -304,28 +304,34 @@ def create_server(data_dir: str) -> Flask:
         logger.info(f"Data received : {decode_data}")
         sport = json_data.get("sport")
         teams = json_data.get("teams")
+        new_teams = []
         for team in teams:
-            if team["Players"] == "":
-                teams.remove(team)
-        file_name = get_file_name(sport, data_dir)
+            if team["username"] != "":
+                new_teams.append(dict(Players=team["username"]))
+        file_name = f"{sport}.json"
+        logger.info(f"file name is {file_name}")
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
-            json.dump(dict(Teams=teams), file, ensure_ascii=False)
-        sport_config = get_sport_config(sport, data_dir)
+            json.dump(dict(Teams=new_teams), file, ensure_ascii=False)
+        logger.info("teams updated")
+        sport_config = get_sport_config(file_name, data_dir)
         if sport_config["Type"] == "Table":
-            table = generate_table(teams, sport_config["Teams per match"])
+            table = generate_table(new_teams, sport_config["Teams per match"])
             file_name = file_name[:-5] + "_playoff.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(table, file, ensure_ascii=False)
+            logger.info("Playoff renewed")
         elif sport_config["Type"] == "Pool":
-            pools = generate_pools(teams)
+            pools = generate_pools(new_teams)
             file_name = file_name[:-5] + "_poules.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(pools, file, ensure_ascii=False)
+            logger.info("Pools renewed")
         elif sport_config["Type"] == "Series":
-            series = generate_series(teams, sport_config)
+            series = generate_series(new_teams, sport_config)
             file_name = file_name[:-5] + "_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
+            logger.info("Series renewed")
         return Response(response="fdp", status=200)
 
     return app

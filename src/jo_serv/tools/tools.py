@@ -2,6 +2,7 @@ import copy
 import datetime
 import json
 import logging
+from math import ceil
 import os
 import random
 import string
@@ -229,6 +230,46 @@ def generate_pools(teams: list) -> Dict[str, list]:
         for match in pool["matches"]:
             print(match)
     return pools
+
+
+def generate_series(teams: list, config: Any) -> Dict[str, list]:
+    print(teams)
+    series = dict(Series=[])
+    if "Teams per match" in config:
+        levels = 0
+        teams_per_match = config["Teams per match"]
+        nb_teams = len(teams)
+        while nb_teams > teams_per_match:
+            nb_teams /= 2
+            levels += 1
+        level_name = ["Final", "Semi", "Quart", "Huitième", "1er Tour"]
+        final = dict(Name="Final", Teams=[dict(Players="", rank=0)]
+                     * teams_per_match, Selected=3, NextSerie=0)
+        if levels > 0:
+            series["Series"].append(final)
+            for level in range(1, levels + 1):
+                for serie in range(2**level):
+                    series["Series"].append(
+                        dict(Name=f"{level_name[level]}{serie+1}", Teams=[], Selected=ceil(teams_per_match/2), NextSerie=0))
+                if level == levels:
+                    for team_number in range(len(teams)):
+                        print(team_number)
+                        for serie in series["Series"]:
+                            print(serie)
+                            if f"{level_name[level]}{team_number%2**levels+1}" == serie["Name"]:
+                                serie["Teams"].append(
+                                    dict(Players=teams[team_number]["Players"], rank=0, score=""))
+                else:
+                    for serie in series["Series"]:
+                        for _ in range(teams_per_match):
+                            serie["Teams"].append(dict(Players="", rank=0, score=""))
+            return series
+    else:
+        final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
+    for team in teams:
+        final["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
+    series["Series"].append(final)
+    return series
 
 
 def team_to_next_step(sport: str, match_id: int, data_dir: str) -> None:

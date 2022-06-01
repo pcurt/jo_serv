@@ -69,7 +69,7 @@ def srv(
     logger.info("Start server")
     logger.info(f"{data_dir}")
 
-    event = threading.Thread(target=event_handler)
+    event = threading.Thread(target=event_handler, args=(data_dir,))
     event.start()
 
     app = create_server(data_dir=data_dir)

@@ -297,13 +297,16 @@ def create_server(data_dir: str) -> Flask:
         # log(sport, username, data) # FIXME to delete ?
         return Response(response="fdp", status=200)
 
-    @app.route("/pushteams", methods=["POST"])
-    def pushteams() -> Response:
+    @app.route("/updateTeams", methods=["POST"])
+    def updateTeams() -> Response:
         decode_data = request.data.decode("utf-8")
         json_data = json.loads(decode_data)
         logger.info(f"Data received : {decode_data}")
         sport = json_data.get("sport")
         teams = json_data.get("teams")
+        for team in teams:
+            if team["Players"] == "":
+                teams.remove(team)
         file_name = get_file_name(sport, data_dir)
         with open(f"teams/{file_name}", "w") as file:
             json.dump(dict(Teams=teams), file, ensure_ascii=False)

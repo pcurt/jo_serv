@@ -12,6 +12,10 @@ from flask import Flask, Response, request  # type: ignore
 
 from jo_serv.tools.tools import (
     generate_pizza_results,
+    generate_pools,
+    generate_series,
+    generate_table,
+    get_sport_config,
     trigger_tas_dhommes,
     update_global_results,
     update_list,
@@ -289,6 +293,43 @@ def create_server(data_dir: str) -> Flask:
 
         # fix_json() # FIXME to delete ?
         # log(sport, username, data) # FIXME to delete ?
+        return Response(response="fdp", status=200)
+
+    @app.route("/updateTeams", methods=["POST"])
+    def updateTeams() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+        sport = json_data.get("sport")
+        teams = json_data.get("teams")
+        new_teams = []
+        for team in teams:
+            if team["username"] != "":
+                new_teams.append(dict(Players=team["username"]))
+        file_name = f"{sport}.json"
+        logger.info(f"file name is {file_name}")
+        with open(f"{data_dir}/teams/{file_name}", "w") as file:
+            json.dump(dict(Teams=new_teams), file, ensure_ascii=False)
+        logger.info("teams updated")
+        sport_config = get_sport_config(file_name, data_dir)
+        if sport_config["Type"] == "Table":
+            table = generate_table(new_teams, sport_config["Teams per match"])
+            file_name = file_name[:-5] + "_playoff.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(table, file, ensure_ascii=False)
+            logger.info("Playoff renewed")
+        elif sport_config["Type"] == "Pool":
+            pools = generate_pools(new_teams)
+            file_name = file_name[:-5] + "_poules.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(pools, file, ensure_ascii=False)
+            logger.info("Pools renewed")
+        elif sport_config["Type"] == "Series":
+            series = generate_series(new_teams, sport_config)
+            file_name = file_name[:-5] + "_series.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(series, file, ensure_ascii=False)
+            logger.info("Series renewed")
         return Response(response="fdp", status=200)
 
     return app

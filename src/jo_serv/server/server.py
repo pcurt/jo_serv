@@ -16,6 +16,7 @@ from jo_serv.tools.tools import (
     generate_series,
     generate_table,
     get_sport_config,
+    team_to_next_step,
     trigger_tas_dhommes,
     update_global_results,
     update_list,
@@ -317,6 +318,12 @@ def create_server(data_dir: str) -> Flask:
             file_name = file_name[:-5] + "_playoff.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(table, file, ensure_ascii=False)
+            with open(f"{data_dir}/teams/{file_name}", "r") as file:
+                data = json.load(file)
+            matches = data["matches"]
+            for match in matches:
+                if match["over"]:
+                    team_to_next_step(sport, match["uniqueId"], data_dir)
             logger.info("Playoff renewed")
         elif sport_config["Type"] == "Pool":
             pools = generate_pools(new_teams)

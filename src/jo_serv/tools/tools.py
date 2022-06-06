@@ -1,5 +1,6 @@
 import copy
 import datetime
+import glob
 import json
 import logging
 import os
@@ -896,3 +897,51 @@ def trigger_tas_dhommes(match: Any, username: str, data_dir: str) -> None:
                 f"Sur {username}\nPour avoir voté pour sa propre pizza",
                 data_dir,
             )
+
+
+def get_all_event_list(data_dir: str) -> list:
+    logger = logging.getLogger(__name__)
+    logger.info("get_all_event_list")
+    all_event = []
+    for file in glob.glob(f"{data_dir}/teams/*.json"):
+        if "_status" not in file and "_poules" not in file:
+            if "_series" not in file and "_playoff" not in file:
+                if "_ts" not in file and "_save" not in file:
+                    logger.debug(f"Files is : {file}")
+                    event = os.path.basename(file).split(".")[0]
+                    logger.info(f"Found Event : {event}")
+                    all_event.append(event)
+    return all_event
+
+
+def create_empty_bet_files(data_dir: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("create_empty_bet_files")
+    all_event = get_all_event_list(data_dir)
+    for event in all_event:
+        # Opening JSON file
+        f = open(f"{data_dir}/teams/{event}.json")
+        # returns JSON object as  # a dictionary
+        all_bets: list = []
+        logger.info(f"Reading file  : {data_dir}/teams/{event}.json")
+        try:
+            data = json.load(f)
+            teams = data.get("Teams")
+            logger.debug(f"Teams : {teams}")
+            for team in teams:
+                players = team["Players"]
+                logger.debug(f"Players : {players}")
+                bet: dict = dict()
+                # Create empty entry
+                bet["Players"] = players
+                bet["Votes"] = []
+                bet["Rank"] = 1
+                bet["TotalVotes"] = 0
+                logger.info(f"Bet for event {event}: {bet}")
+                all_bets.append(bet)
+            logger.info(f"All bets : {all_bets}")
+            with open(f"{data_dir}/bets/{event}.json", "w") as file:
+                json.dump(dict(Teams=all_bets), file, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Error reading file : {data_dir}/teams/{event}.json")
+            logger.error(f"Error {e}")

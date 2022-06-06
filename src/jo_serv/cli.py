@@ -14,6 +14,7 @@ import click
 # Local package imports
 from jo_serv.server.server import create_server
 from jo_serv.tools.event import event_handler
+from jo_serv.tools.tools import create_empty_bet_files
 
 
 # Define this function as a the main command entrypoint
@@ -77,10 +78,25 @@ def srv(
     logger.info("Server is stopped")
 
 
+@click.option(
+    "--data-dir",
+    help="Path to the data dir",
+    default="./",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
+)
 @main.command()
-def tools() -> None:
+def tools(
+    data_dir: str,
+) -> None:
     logger = logging.getLogger((__name__))
     logger.info("Start tools")
+    create_empty_bet_files(data_dir=data_dir)
 
 
 if __name__ == "__main__":

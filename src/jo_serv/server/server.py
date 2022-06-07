@@ -1,4 +1,5 @@
 # Standard lib imports
+import datetime
 import hashlib
 import json
 import logging
@@ -74,7 +75,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Wrong password ", status=403)
 
-    @app.route("/chat/<path:name>", methods=["GET", "POST"])
+    @app.route("/Chatalere/<path:name>", methods=["GET", "POST"])
     def chat(name: str) -> Response:
         """Chat endpoints
 
@@ -82,13 +83,35 @@ def create_server(data_dir: str) -> Flask:
             Response: The chat file content
         """
         if request.method == "GET":
-            logger.info(f"Get on /chat/{name}")
+            logger.info(f"Get on /Chatalere/{name}")
             path = data_dir + "/chat/" + name
             with open(path, "rb") as file:
                 logger.info(f"Read files {path}")
                 return Response(response=file.read(), status=200)
+        if request.method == "POST":
+            logger.info(f"Post on /chat/{name}")
+            decode_data = request.data.decode("utf-8")
+            logger.info(f"Decode data: {decode_data}")
+            json_data = json.loads(decode_data)
+            username = json_data.get("username")
+            # sportname = json_data.get("sportname")
+            text = json_data.get("text")
+            if text == "" or username == "":
+                return Response(response="fdp", status=200)
+            now = datetime.datetime.now()
+            with open(f"{data_dir}/chat/{name}", "a") as new_file:
+                new_file.write(
+                    "\n"
+                    + now.strftime("%m/%d, %H:%M")
+                    + "  -  "
+                    + username
+                    + " : "
+                    + text
+                )
+                return Response(response="fdp", status=200)
+
         logger.error(f"Error reading files {path}")
-        return Response(response="Error on endpoint chat", status=404)
+        return Response(response="Error on endpoint Chatalere", status=404)
 
     @app.route("/teams/<path:name>", methods=["GET", "POST"])
     def teams(name: str) -> Response:

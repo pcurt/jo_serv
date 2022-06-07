@@ -945,3 +945,30 @@ def create_empty_bet_files(data_dir: str) -> None:
         except Exception as e:
             logger.error(f"Error reading file : {data_dir}/teams/{event}.json")
             logger.error(f"Error {e}")
+
+
+def update_bet_file(data_dir: str, sport: str, username: str, bets: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("update_bet_file")
+    # TODO Check if event is locked or not
+    logger.info(f"Reading file  : {data_dir}/bets/{sport}.json")
+    with open(f"{data_dir}/bets/{sport}.json") as f:
+
+        data = json.load(f).get("Teams")
+        logger.info(f"Raw data is{data}")
+        for idx, team in enumerate(data):
+            logger.info(f"Iteartion {idx}, {team}")
+            logger.info(data[idx]["Votes"])
+            logger.info(team["Players"])
+            logger.info(bets)
+            logger.info(username)
+            # Delete other enries for this user
+            try:
+                data[idx]["Votes"].remove(username)
+            except ValueError:
+                pass
+            if team["Players"] == bets:
+                logger.info(f"Add bet for {username, bets}")
+                data[idx]["Votes"].append(username)
+            # Update totalvotes
+            data[idx]["TotalVotes"] = len(data[idx]["Votes"])

@@ -19,6 +19,7 @@ from jo_serv.tools.tools import (
     get_sport_config,
     team_to_next_step,
     trigger_tas_dhommes,
+    update_bet_file,
     update_global_results,
     update_list,
     update_playoff_match,
@@ -376,5 +377,25 @@ def create_server(data_dir: str) -> Flask:
                 return Response(response=file.read(), status=200)
 
         return Response(response="Error on endpoint bets", status=404)
+
+    @app.route("/pushBets", methods=["POST"])
+    def pushBets() -> Response:
+        """Push bets endpoints
+
+        Returns:
+            Response: The operation status
+        """
+        if request.method == "POST":
+            logger.info("Post on /pushBets")
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            username = json_data.get("username")
+            sport = json_data.get("sport")
+            bets = json_data.get("bets")
+            update_bet_file(
+                data_dir=data_dir, username=username, sport=sport, bets=bets
+            )
+            return Response(response="fdp", status=200)
+        return Response(response="Error on endpoint pushBets", status=404)
 
     return app

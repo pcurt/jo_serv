@@ -519,7 +519,7 @@ def compute_points(poule: dict) -> dict:
 def update_list(sport: str, data: dict, data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("update_list")
-    with open(f"{data_dir}/teams/{sport}.json", "r") as file:
+    with open(f"{data_dir}/teams/{sport}_series.json", "r") as file:
         matches_data = json.load(file)
         for player_data in data:
             level = player_data["level"]
@@ -554,7 +554,7 @@ def update_list(sport: str, data: dict, data_dir: str) -> None:
                                         )
                                     print(matches_data["Series"][next]["Teams"])
 
-    with open(f"{data_dir}/teams/{sport}.json", "w") as file:
+    with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
         json.dump(matches_data, file, ensure_ascii=False)
     if "Pizza" in sport:
         return
@@ -575,7 +575,7 @@ def generate_pizza_results(data_dir: str) -> None:
     for player in players_list():
         players_score.append(dict(Players=player, score=0))
     for judge in players_list():
-        with open(f"{data_dir}/teams/Pizza/{judge}.json", "r") as pizz_file:
+        with open(f"{data_dir}/teams/Pizza/{judge}_series.json", "r") as pizz_file:
             for team in json.load(pizz_file)["Series"][0]["Teams"]:
                 if team["rank"] == 1:
                     for someone in players_score:

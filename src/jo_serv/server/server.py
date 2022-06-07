@@ -339,4 +339,19 @@ def create_server(data_dir: str) -> Flask:
             logger.info("Series renewed")
         return Response(response="fdp", status=200)
 
+    @app.route("/bets/<path:name>", methods=["GET", "POST"])
+    def bets(name: str) -> Response:
+        """Bets endpoints
+
+        Returns:
+            Response: The bet file content
+        """
+        if request.method == "GET":
+            logger.info(f"Get on /bets/{name}")
+            path = data_dir + "/bets/" + name
+            with open(path, "rb") as file:
+                return Response(response=file.read(), status=200)
+
+        return Response(response="Error on endpoint bets", status=404)
+
     return app

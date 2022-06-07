@@ -111,3 +111,4 @@ ENV/
 # Custom for this project
 chat/
 teams/
+bets/

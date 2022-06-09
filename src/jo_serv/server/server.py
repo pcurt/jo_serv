@@ -12,6 +12,7 @@ import requests  # type: ignore
 from flask import Flask, Response, request  # type: ignore
 
 from jo_serv.tools.tools import (
+    adapt_bet_file,
     generate_pizza_results,
     generate_pools,
     generate_series,
@@ -361,6 +362,7 @@ def create_server(data_dir: str) -> Flask:
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
             logger.info("Series renewed")
+        adapt_bet_file(data_dir, sport)
         return Response(response="fdp", status=200)
 
     @app.route("/bets/<path:name>", methods=["GET", "POST"])

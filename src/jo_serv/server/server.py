@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 
 import mariadb  # type: ignore
@@ -65,15 +66,19 @@ def create_server(data_dir: str) -> Flask:
 
         logger.info(f" User {rcv_user} is trying to login")
 
-        cur.execute("SELECT * from users")
-        for (id, user, pwd, autho, date) in cur:
-            logger.debug(f"{id} {user} {pwd} {autho} {date}")
-            if rcv_user == user:
-                if rcv_password == pwd:
-                    logger.info(f"Receive correct password for {user}")
-                    return Response(response="Logged IN ", status=200)
-                else:
-                    logger.info(f"Receive invalid password for {user}")
+        try:
+            cur.execute("SELECT * from users")
+            for (id, user, pwd, autho, date) in cur:
+                logger.debug(f"{id} {user} {pwd} {autho} {date}")
+                if rcv_user == user:
+                    if rcv_password == pwd:
+                        logger.info(f"Receive correct password for {user}")
+                        return Response(response="Logged IN ", status=200)
+                    else:
+                        logger.info(f"Receive invalid password for {user}")
+        except mariadb.InterfaceError:
+            logger.info("Connection to mariadb has been lost, restart the module")
+            sys.exit(-1)
 
         return Response(response="Wrong password ", status=403)
 

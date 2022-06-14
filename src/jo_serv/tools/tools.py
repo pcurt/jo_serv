@@ -975,19 +975,30 @@ def update_bet_file(data_dir: str, sport: str, username: str, bets: str) -> None
     with open(f"{data_dir}/bets/{sport}.json", "w") as f:
         json.dump(dict(Teams=data), f, ensure_ascii=False)
 
-def adapt_bet_file(data_dir, sport):
+
+def adapt_bet_file(data_dir: str, sport: str) -> None:
     with open(f"{data_dir}/bets/{sport}.json", "r") as bets_file:
         bets = json.load(bets_file).get("Teams")
     with open(f"{data_dir}/teams/{sport}.json", "r") as teams_file:
         teams = json.load(teams_file).get("Teams")
     for bet_team in bets:
         if not any(bet_team["Players"] == team["Players"] for team in teams):
-            send_notif("all", f"{sport}", f'{bet_team["Players"]} a été supprimé, pensez à adapter vos paris', data_dir)
+            send_notif(
+                "all",
+                f"{sport}",
+                f'{bet_team["Players"]} a été supprimé, pensez à adapter vos paris',
+                data_dir,
+            )
             bets.remove(bet_team)
     for team in teams:
         if not any(team["Players"] == bet_team["Players"] for bet_team in bets):
             bets.append(dict(Players=team["Players"], Votes=[], TotalVotes=0))
-            send_notif("all", f"{sport}", f'{bet_team["Players"]} a été ajouté, pensez à adapter vos paris', data_dir)
+            send_notif(
+                "all",
+                f"{sport}",
+                f'{bet_team["Players"]} a été ajouté, pensez à adapter vos paris',
+                data_dir,
+            )
     with open(f"{data_dir}/bets/{sport}.json", "w") as bets_file:
         json.dump(dict(Teams=bets), bets_file)
     with open(f"{data_dir}/teams/{sport}.json", "w") as teams_file:

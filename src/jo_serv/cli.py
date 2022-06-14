@@ -74,7 +74,7 @@ def srv(
     event.start()
 
     app = create_server(data_dir=data_dir)
-    app.run(host="0.0.0.0", port=7070, debug=True, use_reloader=False)  # nosec
+    app.run(port=8000, debug=True, use_reloader=False)  # nosec
     logger.info("Server is stopped")
 
 

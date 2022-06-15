@@ -19,6 +19,7 @@ from jo_serv.tools.tools import (
     generate_series,
     generate_table,
     get_sport_config,
+    send_notif,
     team_to_next_step,
     trigger_tas_dhommes,
     update_bet_file,
@@ -259,30 +260,7 @@ def create_server(data_dir: str) -> Flask:
         title = json_data.get("title")
         body = json_data.get("body")
 
-        tokens = open(data_dir + "/tokens.txt", "r").readlines()
-        if to_req == "all":
-            logger.info("pushing to all!")
-            for token in tokens:
-                if "ExponentPushToken" in token:
-                    data = {
-                        "to": token.split(":")[0].replace(":", ""),
-                        "title": title,
-                        "body": body,
-                    }
-                    requests.post("https://exp.host/--/api/v2/push/send", data=data)
-                    logger.info("Notification sent to all!")
-        else:
-            logger.info(f"pushing to: {to_req}")
-            for token in tokens:
-                if to_req in token:
-                    if "ExponentPushToken" in token:
-                        data = {
-                            "to": token.split(":")[0].replace(":", ""),
-                            "title": title,
-                            "body": body,
-                        }
-                        requests.post("https://exp.host/--/api/v2/push/send", data=data)
-                        logger.info("Notification sent to all!")
+        send_notif(to_req, title, body, data_dir)
         return Response(response="fdp", status=200)
 
     @app.route("/pushmatch", methods=["POST"])

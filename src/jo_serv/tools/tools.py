@@ -853,19 +853,19 @@ def calculate_rank_clicker(clicker: list, data_dir: str) -> None:
 
 
 def send_notif(to: str, title: str, body: str, data_dir: str) -> None:
+    to = to.replace(" ", "")
     with open(f"{data_dir}/tokens.txt", "r") as tokens_file:
         tokens = tokens_file.readlines()
-    print(tokens)
-    if not to == "all":
+    tokens_list = tokens
+    if to not in ("all", "All"):
+        tokens_list = []
         for token in tokens:
-            if to in token:
-                tokens = [token]
-                break
-    print(tokens)
-    for token in tokens:
+            for person in to.split(","):
+                if person in token:
+                    tokens_list.append(token)
+    for token in tokens_list:
         if "ExponentPushToken" in token:
             data = {"to": token.split(":")[0], "title": title, "body": body}
-            print(data)
             requests.post("https://exp.host/--/api/v2/push/send", data=data)
 
 

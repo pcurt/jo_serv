@@ -19,9 +19,11 @@ from jo_serv.tools.tools import (
     generate_series,
     generate_table,
     get_sport_config,
+    lock,
     send_notif,
     team_to_next_step,
     trigger_tas_dhommes,
+    unlock,
     update_bet_file,
     update_global_results,
     update_list,
@@ -382,5 +384,21 @@ def create_server(data_dir: str) -> Flask:
             )
             return Response(response="fdp", status=200)
         return Response(response="Error on endpoint pushBets", status=404)
+
+    @app.route("/locksport", methods=["POST"])
+    def locksport() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+
+        sport = json_data.get("sport")
+        type = json_data.get("type")
+
+        if type == "lock":
+            lock(sport, data_dir)
+        elif type == "unlock":
+            unlock(sport, data_dir)
+
+        return Response(response="fdp", status=200)
 
     return app

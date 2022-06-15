@@ -1003,3 +1003,58 @@ def adapt_bet_file(data_dir: str, sport: str) -> None:
         json.dump(dict(Teams=bets), bets_file)
     with open(f"{data_dir}/teams/{sport}.json", "w") as teams_file:
         json.dump(dict(Teams=teams), teams_file)
+
+
+def lock(sportname: str, data_dir: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("lock sport")
+    with open(f"{data_dir}/teams/{sportname}_status.json", "r") as file:
+        data = json.load(file)
+    if "_locked" not in data["status"]:
+        data["status"] = data["status"] + "_locked"
+
+    for idx, state in enumerate(data["states"]):
+        if (
+            (state == "series")
+            or (state == "final")
+            or (state == "poules")
+            or (state == "playoff")
+        ):
+            logger.info(f"lock sport {sportname} {state}")
+            data["states"][idx] = data["states"][idx] + "_locked"
+
+    with open(f"{data_dir}/teams/{sportname}_status.json", "w") as file:
+        json.dump(data, file, ensure_ascii=False)
+
+
+def unlock(sportname: str, data_dir: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("unlock sport")
+    with open(f"{data_dir}/teams/{sportname}_status.json", "r") as file:
+        data = json.load(file)
+    data["status"] = data["status"].replace("_locked", "")
+
+    for idx, state in enumerate(data["states"]):
+        if (
+            (state == "series_locked")
+            or (state == "final_locked")
+            or (state == "poules_locked")
+            or (state == "playoff_locked")
+        ):
+            logger.info(f"unlock sport {sportname} {state}")
+            data["states"][idx] = data["states"][idx].replace("_locked", "")
+
+    with open(f"{data_dir}/teams/{sportname}_status.json", "w") as file:
+        json.dump(data, file, ensure_ascii=False)
+
+
+def end_sport(sportname: str, data_dir: str) -> None:
+    with open(f"{data_dir}/results/sports/{sportname}_summary.json", "r") as file:
+        teams = json.load(file)["Teams"]["2022"]
+    with open(f"teams/{sportname}.json", "w") as file:
+        json.dump(
+            dict(Series=[dict(Name="Final", Teams=teams, Selected=0, NextSerie=0)]),
+            file,
+            ensure_ascii=False,
+        )
+    send_notif("all", sportname, "Vous pouvez désormais voir les résultast!", data_dir)

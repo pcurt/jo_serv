@@ -10,6 +10,7 @@ from typing import Optional
 
 # Third-party lib imports
 import click
+from waitress import serve  # type: ignore
 
 # Local package imports
 from jo_serv.server.server import create_server
@@ -74,7 +75,7 @@ def srv(
     event.start()
 
     app = create_server(data_dir=data_dir)
-    app.run(port=8000, debug=True, use_reloader=False)  # nosec
+    serve(app, port=8000)
     logger.info("Server is stopped")
 
 

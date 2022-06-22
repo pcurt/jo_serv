@@ -561,17 +561,19 @@ def update_list(sport: str, data: dict, data_dir: str) -> None:
     add_new_results(sport, teams, data_dir)
     logger.info("update_list end")
 
-def add_new_results(sport: str, results: any, data_dir: str):
+
+def add_new_results(sport: str, results: Any, data_dir: str) -> None:
     year = str(datetime.date.today().year)
     file_name = f"{sport}_summary.json"
     teams = dict()
     if os.path.exists(f"{data_dir}/results/sports/{file_name}"):
         with open(f"{data_dir}/results/sports/{file_name}", "r") as file:
             teams = json.load(file)
-            
+
     teams[year] = results
     with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
         json.dump(teams, file, ensure_ascii=False)
+
 
 def generate_pizza_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)

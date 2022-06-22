@@ -349,7 +349,6 @@ def update_playoff_match(
     if match_data["level"] != matches_data["levels"] - 1:
         team_to_next_step(sport, match_id, data_dir)
     else:
-        file_name = f"{sport}_summary.json"
         teams: dict = dict(Teams=list())
         winner_name = match_data[f"team{winner}"]
         teams["Teams"].append(dict(Players=winner_name, rank=1))
@@ -362,8 +361,7 @@ def update_playoff_match(
                 thirds.append(third)
         for third in thirds:
             teams["Teams"].append(dict(Players=third, rank=3))
-        with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
-            json.dump(teams, file, ensure_ascii=False)
+        add_new_results(sport, teams, data_dir)
     logger.info("update_playoff_match end")
 
 
@@ -423,9 +421,7 @@ def update_poules_match(
                     teams["Teams"].append(
                         dict(Players=get_n_th(poule, 3)["name"], rank=3)
                     )
-                file_name = f"{sport}_summary.json"
-                with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
-                    json.dump(teams, file, ensure_ascii=False)
+                add_new_results(sport, teams, data_dir)
         else:
             with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
                 data = json.load(file)
@@ -562,11 +558,20 @@ def update_list(sport: str, data: dict, data_dir: str) -> None:
     for team in matches_data["Series"][0]["Teams"]:
         if team["rank"]:
             teams["Teams"].append(team)
-    file_name = f"{sport}_summary.json"
-    with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
-        json.dump(teams, file, ensure_ascii=False)
+    add_new_results(sport, teams, data_dir)
     logger.info("update_list end")
 
+def add_new_results(sport: str, results: any, data_dir: str):
+    year = str(datetime.date.today().year)
+    file_name = f"{sport}_summary.json"
+    teams = dict()
+    if os.path.exists(f"{data_dir}/results/sports/{file_name}"):
+        with open(f"{data_dir}/results/sports/{file_name}", "r") as file:
+            teams = json.load(file)
+            
+    teams[year] = results
+    with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
+        json.dump(teams, file, ensure_ascii=False)
 
 def generate_pizza_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
@@ -735,11 +740,14 @@ def get_results(athlete: Any, data_dir: str) -> dict:
         if "_summary.json" in filename:
             sport = filename.replace("_summary.json", "")
             with open(f"{data_dir}/results/sports/{filename}", "r") as file:
+                current_year = str(datetime.date.today().year)
                 sport_results = json.load(file)
-                for team in sport_results["Teams"]:
-                    if athlete in team["Players"]:
-                        rank = team["rank"]
-                        results[f"nr{rank}"].append(sport)
+                if current_year in sport_results:
+                    for team in sport_results[current_year]["Teams"]:
+                        logger.info(team)
+                        if athlete in team["Players"]:
+                            rank = team["rank"]
+                            results[f"nr{rank}"].append(sport)
     return results
 
 
@@ -755,6 +763,8 @@ def update_results(athlete: Any, data_dir: str) -> dict:
         bronze_medals=dict(number=bronze_medals, sports=results["nr3"]),
         points=points,
     )
+    with open(f"{data_dir}/results/athletes/{athlete}.json", "w") as file:
+        json.dump(final_results, file)
     return final_results
 
 
@@ -1049,12 +1059,8 @@ def unlock(sportname: str, data_dir: str) -> None:
 
 
 def end_sport(sportname: str, data_dir: str) -> None:
-    with open(f"{data_dir}/results/sports/{sportname}_summary.json", "r") as file:
-        teams = json.load(file)["Teams"]["2022"]
-    with open(f"teams/{sportname}.json", "w") as file:
-        json.dump(
-            dict(Series=[dict(Name="Final", Teams=teams, Selected=0, NextSerie=0)]),
-            file,
-            ensure_ascii=False,
-        )
+    with open(f"{data_dir}/teams/{sportname}_status.json", "a") as file:
+        status = json.load(file)
+        status["status"] = "results"
+        json.dump(status, file)
     send_notif("all", sportname, "Vous pouvez désormais voir les résultast!", data_dir)

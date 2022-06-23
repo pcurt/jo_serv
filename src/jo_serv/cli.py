@@ -15,7 +15,7 @@ from waitress import serve  # type: ignore
 # Local package imports
 from jo_serv.server.server import create_server
 from jo_serv.tools.event import event_handler
-from jo_serv.tools.tools import create_empty_bet_files
+from jo_serv.tools.tools import update_global_bets_results
 
 
 # Define this function as a the main command entrypoint
@@ -97,7 +97,7 @@ def tools(
 ) -> None:
     logger = logging.getLogger((__name__))
     logger.info("Start tools")
-    create_empty_bet_files(data_dir=data_dir)
+    update_global_bets_results(data_dir=data_dir)
 
 
 if __name__ == "__main__":

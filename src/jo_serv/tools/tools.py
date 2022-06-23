@@ -753,6 +753,46 @@ def get_results(athlete: Any, data_dir: str) -> dict:
     return results
 
 
+def get_bet_score(player: Any, data_dir: str) -> dict:
+    logger = logging.getLogger(__name__)
+    logger.info("get_bet_score")
+    score = 0
+    for filename in os.listdir(f"{data_dir}/results/sports/"):
+        logger.info(f"{filename}")
+        if "_summary.json" in filename:
+            sport = filename.replace("_summary.json", "")
+            logger.info(f"Bet result for {sport}")
+            with open(f"{data_dir}/results/sports/{filename}", "r") as file:
+                current_year = str(datetime.date.today().year)
+                sport_results = json.load(file)
+                logger.debug(f"All sport result : {sport_results}")
+                if current_year in sport_results:
+                    for team in sport_results[current_year]["Teams"]:
+                        logger.info(f"Team is {team}")
+
+                        if team["rank"] == 1 or team["rank"] == 2 or team["rank"] == 3:
+                            logger.debug(
+                                f"Reading file  : {data_dir}/bets/{sport}.json"
+                            )
+                            with open(f"{data_dir}/bets/{sport}.json") as f:
+                                data = json.load(f).get("Teams")
+                                for bet_team in data:
+                                    if bet_team["Players"] == team["Players"]:
+                                        if player in bet_team["Votes"]:
+                                            if team["rank"] == 1:
+                                                points = 9
+                                            elif team["rank"] == 2:
+                                                points = 5
+                                            else:
+                                                points = 3
+                                            score = score + points
+                                            logger.info(
+                                                f"{player} has voted for wining team in {sport}"
+                                            )
+    bet_result = dict(player=player, score=score)
+    return bet_result
+
+
 def update_results(athlete: Any, data_dir: str) -> dict:
     results: dict = get_results(athlete, data_dir)
     gold_medals = len(results["nr1"])
@@ -805,6 +845,38 @@ def update_global_results(data_dir: str) -> None:
     with open(f"{data_dir}/results/global.json", "w") as file:
         json.dump(final_results, file)
     logger.info("update_global_results ended")
+
+
+def update_global_bets_results(data_dir: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("update_global_bets_results")
+    results = []
+    for athlete in players_list():
+        logger.info(f"Update player {athlete}")
+        result = get_bet_score(athlete, data_dir)
+        results.append(result)
+        logger.info(f"Bet result is {result}")
+
+    results = sorted(results, key=lambda i: i["score"], reverse=True)  # type: ignore
+
+    final_results = []
+    global_rank = 0
+    prev_score = 0
+    prev_rank = 0
+    for result in results:
+        global_rank = global_rank + 1
+        if result["score"] != prev_score:
+            rank = global_rank
+        else:
+            rank = prev_rank
+        prev_rank = rank
+        prev_score = result["score"]
+        res = dict(rank=rank, player=result["player"], score=result["score"])
+        final_results.append(res)
+
+    with open(f"{data_dir}/results/global_bets.json", "w") as file:
+        json.dump(final_results, file, ensure_ascii=False, indent=4)
+    logger.info("update_global_bets_results ended")
 
 
 # def generate_event_list(name):

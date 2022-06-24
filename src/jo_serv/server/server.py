@@ -227,7 +227,8 @@ def create_server(data_dir: str) -> Flask:
         else:
             last_time = time.time() - 16 * 60
         if time.time() > (last_time + 15 * 60):  # filter 15 mins
-            logger.info("cluedotime")
+            since = last_time - time.time()
+            logger.info(f"cluedotime no cluedo since {since} s")
             tokens = open(data_dir + "/tokens.txt", "r").readlines()
             for token in tokens:
                 if "ExponentPushToken" in token:
@@ -243,7 +244,7 @@ def create_server(data_dir: str) -> Flask:
                         logger.info(
                             "device not registered anymore so removing the line"
                         )
-                        full_txt = open("tokens.txt", "r").read()
+                        full_txt = open(data_dir + "/tokens.txt", "r").read()
                         open(data_dir + "/tokens.txt", "w").write(
                             full_txt.replace(token, "")
                         )

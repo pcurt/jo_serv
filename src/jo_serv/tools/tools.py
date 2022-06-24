@@ -1124,3 +1124,29 @@ def end_sport(sportname: str, data_dir: str) -> None:
         status["status"] = "results"
         json.dump(status, file)
     send_notif("all", sportname, "Vous pouvez désormais voir les résultast!", data_dir)
+
+
+def add_events_to_handler(data_dir: str) -> None:
+    with open(f"{data_dir}/events.json", "r") as file:
+        data = json.load(file)
+    events = data["Events"]
+    activities = activities_list(True)
+    for activity in activities:
+        new_event_start = {
+            "name": f"Start {activity}",
+            "date": activities[activity][0],
+            "callback": "notif_start_sport",
+            "args": {"sport": activity},
+            "done": False,
+        }
+        new_event_end = {
+            "name": f"End {activity}",
+            "date": activities[activity][1],
+            "callback": "notif_end_sport",
+            "args": {"sport": activity},
+            "done": False,
+        }
+        events.append(new_event_start)
+        events.append(new_event_end)
+    with open(f"{data_dir}/events.json", "w") as file:
+        json.dump(dict(Events=events), file, ensure_ascii=False)

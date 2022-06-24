@@ -15,7 +15,7 @@ from waitress import serve  # type: ignore
 # Local package imports
 from jo_serv.server.server import create_server
 from jo_serv.tools.event import event_handler
-from jo_serv.tools.tools import update_global_bets_results
+from jo_serv.tools.tools import create_empty_bet_files, update_global_bets_results
 
 
 # Define this function as a the main command entrypoint
@@ -92,12 +92,33 @@ def srv(
     ),
 )
 @main.command()
-def tools(
+def generate_results(
     data_dir: str,
 ) -> None:
     logger = logging.getLogger((__name__))
-    logger.info("Start tools")
+    logger.info("Start generate_results")
     update_global_bets_results(data_dir=data_dir)
+
+
+@click.option(
+    "--data-dir",
+    help="Path to the data dir",
+    default="./",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
+)
+@main.command()
+def generate_bets(
+    data_dir: str,
+) -> None:
+    logger = logging.getLogger((__name__))
+    logger.info("Start generate_bets")
+    create_empty_bet_files(data_dir=data_dir)
 
 
 if __name__ == "__main__":

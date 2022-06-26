@@ -1072,18 +1072,7 @@ def lock(sportname: str, data_dir: str) -> None:
     logger.info("lock sport")
     with open(f"{data_dir}/teams/{sportname}_status.json", "r") as file:
         data = json.load(file)
-    if "_locked" not in data["status"]:
-        data["status"] = data["status"] + "_locked"
-
-    for idx, state in enumerate(data["states"]):
-        if (
-            (state == "series")
-            or (state == "final")
-            or (state == "poules")
-            or (state == "playoff")
-        ):
-            logger.info(f"lock sport {sportname} {state}")
-            data["states"][idx] = data["states"][idx] + "_locked"
+        data["locked"] = True
 
     with open(f"{data_dir}/teams/{sportname}_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
@@ -1094,17 +1083,7 @@ def unlock(sportname: str, data_dir: str) -> None:
     logger.info("unlock sport")
     with open(f"{data_dir}/teams/{sportname}_status.json", "r") as file:
         data = json.load(file)
-    data["status"] = data["status"].replace("_locked", "")
-
-    for idx, state in enumerate(data["states"]):
-        if (
-            (state == "series_locked")
-            or (state == "final_locked")
-            or (state == "poules_locked")
-            or (state == "playoff_locked")
-        ):
-            logger.info(f"unlock sport {sportname} {state}")
-            data["states"][idx] = data["states"][idx].replace("_locked", "")
+        data["locked"] = False
 
     with open(f"{data_dir}/teams/{sportname}_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)

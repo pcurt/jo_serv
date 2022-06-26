@@ -211,7 +211,7 @@ def generate_pools(teams: list) -> Dict[str, list]:
     for pool in pools["groups"]:
         for team_number in range(pool["team_number"] - 1):
             team1 = pool["teams"][team_number]
-            for team2 in pool["teams"][team_number + 1:]:
+            for team2 in pool["teams"][team_number + 1 :]:
                 match_dict = dict(
                     uniqueId=unique_id,
                     team1=team1["name"],
@@ -314,7 +314,12 @@ def team_to_next_step(sport: str, match_id: int, data_dir: str) -> None:
 def user_is_authorized(username: str, sport: str, data_dir: str) -> bool:
     with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
         data = json.load(file)
-        return username in data["arbitre"] or username in ("Max", "Antoine", "Ugo", "Pierrick")
+        return username in data["arbitre"] or username in (
+            "Max",
+            "Antoine",
+            "Ugo",
+            "Pierrick",
+        )
 
 
 def retrieve_score(match_data: dict) -> Tuple[int, int]:
@@ -714,7 +719,7 @@ def activities_list(include_date: bool = False) -> Any:
         "100mRicard",
         "Petanque",
         "Rangement",
-        "Remise des prix"
+        "Remise des prix",
     ]
 
 
@@ -872,9 +877,9 @@ def update_global_bets_results(data_dir: str) -> None:
     logger.info("update_global_bets_results ended")
 
 
-def generate_event_list(name: str, data_dir: str):
-    arbitre_list = []
-    playing_list = []
+def generate_event_list(name: str, data_dir: str) -> None:
+    arbitre_list: list = []
+    playing_list: list = []
     parse_json(name, ".json", playing_list, data_dir)
     arbitre_list = sort_list(arbitre_list)
     playing_list = sort_list(playing_list)
@@ -884,7 +889,13 @@ def generate_event_list(name: str, data_dir: str):
         json.dump(dict(arbitre=arbitre_list, activities=playing_list), athlete_file)
 
 
-def parse_json(name_searched: str, suffix: str, list_to_append: list, data_dir: str, exclude: str = None):
+def parse_json(
+    name_searched: str,
+    suffix: str,
+    list_to_append: list,
+    data_dir: str,
+    exclude: str = None,
+) -> None:
     for filename in os.listdir(f"{data_dir}/teams/"):
         if suffix in filename:
             if exclude is None or filename not in exclude:

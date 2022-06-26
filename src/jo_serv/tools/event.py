@@ -6,7 +6,12 @@ import shutil
 import time
 from typing import Any
 
-from jo_serv.tools.tools import calculate_rank_clicker, players_list, send_notif, activities_list
+from jo_serv.tools.tools import (
+    activities_list,
+    calculate_rank_clicker,
+    players_list,
+    send_notif,
+)
 
 
 def event_handler(data_dir: str) -> None:
@@ -27,9 +32,9 @@ def event_handler(data_dir: str) -> None:
                     logger.info(f"Trig event {event}")
                     if "args" in event:
                         args = event["args"]
-                        call_back(args)
+                        call_back(args, data_dir)
                     else:
-                        call_back()
+                        call_back(data_dir)
                     logger.debug(f"Event {event} done")
                     set_event_done(event["name"], data_dir)
         except Exception as e:

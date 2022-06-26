@@ -13,12 +13,14 @@ from flask import Flask, Response, request  # type: ignore
 
 from jo_serv.tools.tools import (
     adapt_bet_file,
+    generate_event_list,
     generate_pizza_results,
     generate_pools,
     generate_series,
     generate_table,
     get_sport_config,
     lock,
+    players_list,
     send_notif,
     team_to_next_step,
     trigger_tas_dhommes,
@@ -348,6 +350,8 @@ def create_server(data_dir: str) -> Flask:
                 json.dump(series, file, ensure_ascii=False)
             logger.info("Series renewed")
         adapt_bet_file(data_dir, sport)
+        for player in players_list():
+            generate_event_list(player, data_dir)
         return Response(response="fdp", status=200)
 
     @app.route("/bets/<path:name>", methods=["GET", "POST"])

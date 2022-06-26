@@ -211,7 +211,7 @@ def generate_pools(teams: list) -> Dict[str, list]:
     for pool in pools["groups"]:
         for team_number in range(pool["team_number"] - 1):
             team1 = pool["teams"][team_number]
-            for team2 in pool["teams"][team_number + 1 :]:
+            for team2 in pool["teams"][team_number + 1:]:
                 match_dict = dict(
                     uniqueId=unique_id,
                     team1=team1["name"],
@@ -314,7 +314,7 @@ def team_to_next_step(sport: str, match_id: int, data_dir: str) -> None:
 def user_is_authorized(username: str, sport: str, data_dir: str) -> bool:
     with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
         data = json.load(file)
-        return username in data["arbitre"] or username in ("Max", "Antoine", "Ugo")
+        return username in data["arbitre"] or username in ("Max", "Antoine", "Ugo", "Pierrick")
 
 
 def retrieve_score(match_data: dict) -> Tuple[int, int]:
@@ -647,7 +647,7 @@ def players_list() -> list:
         "Max",
         "Bryan",
         "Keke",
-        "Alissone ",
+        "Alissone",
         "Alice",
         "Mathieu",
         "Pierrick",
@@ -667,47 +667,54 @@ def players_list() -> list:
 def activities_list(include_date: bool = False) -> Any:
     if include_date:
         return {
-            "Soirée d'ouverture!": ["2021-08-26T20:00:00", "2021-08-27T09:30:00"],
-            "Trail": ["2021-08-27T09:30:00", "2021-08-27T11:00:00"],
-            "Dodgeball": ["2021-08-27T11:00:00", "2021-08-27T13:00:00"],
-            "Pizza": ["2021-08-27T13:00:00", "2021-08-27T15:00:00"],
-            "Tong": ["2021-08-27T15:00:00", "2021-08-27T18:00:00"],
-            "Babyfoot": ["2021-08-27T15:00:00", "2021-08-27T18:00:00"],
-            "Flechette": ["2021-08-27T15:00:00", "2021-08-27T18:00:00"],
-            "PingPong": ["2021-08-27T15:00:00", "2021-08-27T18:00:00"],
-            "Orientation": ["2021-08-27T18:00:00", "2021-08-27T19:00:00"],
-            "Beerpong": ["2021-08-27T19:00:00", "2021-08-28T00:00:00"],
-            "Volley": ["2021-08-28T10:00:00", "2021-08-28T13:00:00"],
-            "Waterpolo": ["2021-08-28T14:00:00", "2021-08-28T15:00:00"],
-            "Larmina": ["2021-08-28T14:00:00", "2021-08-28T15:00:00"],
-            "Natation": ["2021-08-28T15:00:00", "2021-08-28T17:30:00"],
-            "SpikeBall": ["2021-08-28T15:00:00", "2021-08-28T17:30:00"],
-            "Ventriglisse": ["2021-08-28T17:30:00", "2021-08-28T19:00:00"],
-            "100mRicard": ["2021-08-28T19:00:00", "2021-08-29T04:00:00"],
-            "Petanque": ["2021-08-29T11:00:00", "2021-08-29T13:00:00"],
-            "Molky": ["2021-08-29T11:00:00", "2021-08-29T13:00:00"],
-            "Rangement": ["2021-08-29T14:00:00", "2021-08-29T15:30:00"],
-            "Remiseprix": ["2021-08-29T15:30:00", "2021-08-29T17:30:00"],
+            "Soirée d'ouverture!": ["2022-07-13T20:00:00+02:00", "2022-07-14T09:30:00+02:00"],
+            "Trail": ["2022-07-14T09:30:00+02:00", "2022-07-14T11:00:00+02:00"],
+            "Dodgeball": ["2022-07-14T11:00:00+02:00", "2022-07-14T13:00:00+02:00"],
+            "PingPong": ["2022-07-14T11:00:00+02:00", "2022-07-14T13:00:00+02:00"],
+            "Pizza": ["2022-07-14T12:00:00+02:00", "2022-07-14T15:00:00+02:00"],
+            "Volley": ["2022-07-14T14:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "SpikeBall": ["2022-07-14T14:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "Krossfit": ["2022-07-14T17:00:00+02:00", "2022-07-14T18:00:00+02:00"],
+            "Corde": ["2022-07-14T18:00:00+02:00", "2022-07-14T19:00:00+02:00"],
+            "Orientation": ["2022-07-14T19:00:00+02:00", "2022-07-14T20:00:00+02:00"],
+            "Beerpong": ["2022-07-15T10:00:00+02:00", "2022-07-15T14:00:00+02:00"],
+            "Waterpolo": ["2022-07-15T14:00:00+02:00", "2022-07-15T15:00:00+02:00"],
+            "Larmina": ["2022-07-15T14:00:00+02:00", "2022-07-15T15:00:00+02:00"],
+            "Blindtest": ["2022-07-15T14:00:00+02:00", "2022-07-15T15:00:00+02:00"],
+            "Tong": ["2022-07-15T15:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "Babyfoot": ["2022-07-15T15:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "Flechette": ["2022-07-15T15:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "Slackline": ["2022-07-15T15:00:00+02:00", "2022-07-14T17:00:00+02:00"],
+            "Ventriglisse": ["2022-07-15T17:00:00+02:00", "2022-07-15T19:00:00+02:00"],
+            "100mRicard": ["2022-07-15T21:00:00+02:00", "2022-07-16T04:00:00+02:00"],
+            "Petanque": ["2022-07-16T11:00:00+02:00", "2022-07-16T13:00:00+02:00"],
+            "Rangement": ["2022-07-16T14:00:00+02:00", "2022-07-16T15:30:00+02:00"],
+            "Remise des prix": ["2022-07-16T15:30:00+02:00", "2022-07-16T17:30:00+02:00"]
         }
     return [
+        "Soirée d'ouverture!",
         "Trail",
         "Dodgeball",
+        "PingPong",
         "Pizza",
+        "Volley",
+        "SpikeBall",
+        "Krossfit",
+        "Corde",
+        "Orientation",
+        "Beerpong",
+        "Waterpolo",
+        "Larmina",
+        "Blindtest",
         "Tong",
         "Babyfoot",
         "Flechette",
-        "PingPong",
-        "Orientation",
-        "Beerpong",
-        "Volley",
-        "Waterpolo",
-        "Larmina",
-        "Natation",
-        "SpikeBall",
+        "Slackline",
         "Ventriglisse",
         "100mRicard",
         "Petanque",
-        "Molky",
+        "Rangement",
+        "Remise des prix"
     ]
 
 
@@ -865,28 +872,25 @@ def update_global_bets_results(data_dir: str) -> None:
     logger.info("update_global_bets_results ended")
 
 
-# def generate_event_list(name):
-#    arbitre_list = []
-#    playing_list = []
-#    parse_json(name, "_status.json", arbitre_list)
-#    parse_json(name, "_playoff.json", playing_list)
-#    parse_json(name, "_poules.json", playing_list)
-#    parse_json(name, ".json", playing_list, exclude="_")
-#    arbitre_list = sort_list(arbitre_list)
-#    playing_list = sort_list(playing_list)
-#    print(arbitre_list)
-#    print(playing_list)
-#   with open(f"athletes/{name}.json", "w") as athlete_file:
-#        json.dump(dict(arbitre=arbitre_list, activities=playing_list), athlete_file)
+def generate_event_list(name: str, data_dir: str):
+    arbitre_list = []
+    playing_list = []
+    parse_json(name, ".json", playing_list, data_dir)
+    arbitre_list = sort_list(arbitre_list)
+    playing_list = sort_list(playing_list)
+    print(arbitre_list)
+    print(playing_list)
+    with open(f"{data_dir}/athletes/{name}.json", "w") as athlete_file:
+        json.dump(dict(arbitre=arbitre_list, activities=playing_list), athlete_file)
 
 
-# def parse_json(name_searched, suffix, list_to_append, exclude=None):
-#    for filename in os.listdir("teams/"):
-#        if suffix in filename:
-#            if exclude is None or filename not in exclude:
-#                with open(f"/teams/{filename}", "r") as file:
-#                    if name_searched in file.read():
-#                        list_to_append.append(filename.split(suffix)[0])
+def parse_json(name_searched: str, suffix: str, list_to_append: list, data_dir: str, exclude: str = None):
+    for filename in os.listdir(f"{data_dir}/teams/"):
+        if suffix in filename:
+            if exclude is None or filename not in exclude:
+                with open(f"{data_dir}/teams/{filename}", "r") as file:
+                    if name_searched in file.read():
+                        list_to_append.append(filename.split(suffix)[0])
 
 
 def calculate_rank_clicker(clicker: list, data_dir: str) -> None:
@@ -1053,22 +1057,10 @@ def adapt_bet_file(data_dir: str, sport: str) -> None:
         teams = json.load(teams_file).get("Teams")
     for bet_team in bets:
         if not any(bet_team["Players"] == team["Players"] for team in teams):
-            send_notif(
-                "all",
-                f"{sport}",
-                f'{bet_team["Players"]} a été supprimé, pensez à adapter vos paris',
-                data_dir,
-            )
             bets.remove(bet_team)
     for team in teams:
         if not any(team["Players"] == bet_team["Players"] for bet_team in bets):
             bets.append(dict(Players=team["Players"], Votes=[], TotalVotes=0))
-            send_notif(
-                "all",
-                f"{sport}",
-                f'{bet_team["Players"]} a été ajouté, pensez à adapter vos paris',
-                data_dir,
-            )
     with open(f"{data_dir}/bets/{sport}.json", "w") as bets_file:
         json.dump(dict(Teams=bets), bets_file)
     with open(f"{data_dir}/teams/{sport}.json", "w") as teams_file:

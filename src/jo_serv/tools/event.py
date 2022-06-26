@@ -6,7 +6,7 @@ import shutil
 import time
 from typing import Any
 
-from jo_serv.tools.tools import calculate_rank_clicker, players_list, send_notif
+from jo_serv.tools.tools import calculate_rank_clicker, players_list, send_notif, activities_list
 
 
 def event_handler(data_dir: str) -> None:
@@ -244,7 +244,6 @@ def raz(data_dir: str) -> None:
     raz_results_global(data_dir)
     restore_unplayed_matchs(data_dir)
     raz_medals_per_player(data_dir)
-    partially_clean_clicker(data_dir)
 
 
 def raz_pizza_self_vote(data_dir: str) -> None:
@@ -253,7 +252,15 @@ def raz_pizza_self_vote(data_dir: str) -> None:
 
 
 def raz_results_per_sport(data_dir: str) -> None:
-    os.system(f"rm {data_dir}/results/sports/*")  # nosec
+    year = str(datetime.date.today().year)
+    for sport in activities_list()[1:-2]:
+        if os.path.exists(f"{data_dir}/results/sports/{sport}_summary.json"):
+            with open(f"{data_dir}/results/sports/{sport}_summary.json", "r") as file:
+                data = json.load(file)
+                if year in data:
+                    del data[year]
+            with open(f"{data_dir}/results/sports/{sport}_summary.json", "w") as file:
+                json.dump(data, file)
 
 
 def raz_results_global(data_dir: str) -> None:

@@ -403,11 +403,30 @@ def update_poules_match(
             with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
                 data = json.load(file)
             if "playoff" in data["states"]:
-                for poule in matches_data["groups"]:
-                    teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
-                matches_data["groups"].reverse()
-                for poule in matches_data["groups"]:
-                    teams["Teams"].append(dict(Players=get_n_th(poule, 2)["name"]))
+                if len(matches_data["groups"]) == 2:
+                    for poule in matches_data["groups"]:
+                        teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
+                    matches_data["groups"].reverse()
+                    for poule in matches_data["groups"]:
+                        teams["Teams"].append(dict(Players=get_n_th(poule, 2)["name"]))
+                elif len(matches_data["groups"]) == 3:
+                    temp_teams: dict = dict(teams=[])
+                    for poule in matches_data["groups"]:
+                        temp_teams["teams"].append(get_n_th(poule, 2))
+                        logger.info(temp_teams)
+                    selected = get_n_th(temp_teams, 1)["name"]
+                    teams["Teams"].append(dict(Players=selected))
+                    logger.info(selected)
+                    logger.info(matches_data)
+                    if any(
+                        selected == poule["name"] for poule in matches_data["groups"]
+                    ):
+                        matches_data["groups"].reverse()
+                    for poule in matches_data["groups"]:
+                        teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
+                elif len(matches_data["groups"]) == 4:
+                    for poule in matches_data["groups"]:
+                        teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
                 table = generate_table(teams["Teams"], 2)
                 file_name = f"{sport}_playoff.json"
                 with open(f"{data_dir}/teams/{file_name}", "w") as file:
@@ -476,7 +495,6 @@ def get_n_th(poule: dict, n: int) -> Any:
                                 best_team == team
         teams.append(best_team)
         poule_copy["teams"].remove(best_team)
-    print(teams[-1])
     return teams[-1]
 
 

@@ -23,11 +23,11 @@ from jo_serv.tools.tools import (
     players_list,
     send_notif,
     team_to_next_step,
-    trigger_tas_dhommes,
     unlock,
     update_bet_file,
     update_global_results,
     update_list,
+    update_pizza_vote,
     update_playoff_match,
     update_poules_match,
     user_is_authorized,
@@ -277,29 +277,21 @@ def create_server(data_dir: str) -> Flask:
         match = json_data.get("match")
         type = json_data.get("type")
 
-        if sport == "Pizza":
-            logger.info("Push for pizza")
-            trigger_tas_dhommes(match, username, data_dir)
-            update_list(f"{sport}/{username}", match, data_dir)
-            generate_pizza_results(data_dir)
+        if user_is_authorized(username, sport, data_dir):
+            logger.info("User is authorized")
+            logger.info(f"Type is {type}")
+            if type == "playoff":
+                match_id = int(match["uniqueId"])
+                logger.info(f"update_playoff {sport}, {match_id}, {match}, {data_dir}")
+                update_playoff_match(sport, match_id, match, data_dir)
+                logger.info("update_playoff_match")
+            elif type == "poules":
+                match_id = int(match["uniqueId"])
+                update_poules_match(sport, match_id, match, data_dir)
+            elif type == "liste":
+                update_list(sport, match, data_dir)
         else:
-            if user_is_authorized(username, sport, data_dir):
-                logger.info("User is authorized")
-                logger.info(f"Type is {type}")
-                if type == "playoff":
-                    match_id = int(match["uniqueId"])
-                    logger.info(
-                        f"update_playoff {sport}, {match_id}, {match}, {data_dir}"
-                    )
-                    update_playoff_match(sport, match_id, match, data_dir)
-                    logger.info("update_playoff_match")
-                elif type == "poules":
-                    match_id = int(match["uniqueId"])
-                    update_poules_match(sport, match_id, match, data_dir)
-                elif type == "liste":
-                    update_list(sport, match, data_dir)
-            else:
-                logger.info("User in not authorized")
+            logger.info("User in not authorized")
         logger.info("update_global_results")
         update_global_results(data_dir)
         logger.info("Match is pushed")
@@ -307,6 +299,26 @@ def create_server(data_dir: str) -> Flask:
         # fix_json() # FIXME to delete ?
         # log(sport, username, data) # FIXME to delete ?
         return Response(response="fdp", status=200)
+
+    @app.route("/pushpizza", methods=["POST"])
+    def pushpizza() -> Response:
+        """Push pizza endpoints
+
+        Returns:
+            Response: The operation status
+        """
+        if request.method == "POST":
+            logger.info("Post on /pushpizza")
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            username = json_data.get("username")
+            vote = json_data.get("vote")
+
+            update_pizza_vote(data_dir=data_dir, username=username, vote=vote)
+            generate_pizza_results(data_dir)
+
+            return Response(response="fdp", status=200)
+        return Response(response="Error on endpoint pushpizza", status=404)
 
     @app.route("/updateTeams", methods=["POST"])
     def updateTeams() -> Response:

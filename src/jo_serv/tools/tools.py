@@ -584,15 +584,13 @@ def generate_pizza_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("generate_pizza_results")
     players_score: list = []
-    for player in players_list():
-        players_score.append(dict(Players=player, score=0))
-    for judge in players_list():
-        with open(f"{data_dir}/teams/Pizza/{judge}_series.json", "r") as pizz_file:
-            for team in json.load(pizz_file)["Series"][0]["Teams"]:
-                if team["rank"] == 1:
-                    for someone in players_score:
-                        if someone["Players"] in team["Players"]:
-                            someone["score"] += 1
+    with open(f"{data_dir}/teams/Pizza_series.json") as f:
+        matches_data = json.load(f)
+        serie = matches_data["Series"][0]
+        logger.info(f"Raw data is{serie}")
+        for player in serie["Teams"]:
+            score = len(player["score"])
+            players_score.append(dict(Players=player["Players"], score=score))
     players_score = sorted(players_score, key=lambda i: i["score"])  # type: ignore
     players_score.reverse()
     max_score = players_score[0]["score"]
@@ -606,8 +604,13 @@ def generate_pizza_results(data_dir: str) -> None:
             if rank == 4:
                 break
             player["rank"] = rank
+
+    year = str(datetime.date.today().year)
+    data: dict = dict()
+    data["2021"] = dict()  # No results in 2021
+    data[year] = dict(Teams=players_score)
     with open(f"{data_dir}/results/sports/Pizza_summary.json", "w") as file:
-        json.dump(dict(Teams=players_score), file, ensure_ascii=False)
+        json.dump(data, file, ensure_ascii=False)
     logger.info("generate_pizza_results end")
 
 
@@ -1059,6 +1062,43 @@ def update_bet_file(data_dir: str, sport: str, username: str, bets: str) -> None
             data[idx]["TotalVotes"] = len(data[idx]["Votes"])
     with open(f"{data_dir}/bets/{sport}.json", "w") as f:
         json.dump(dict(Teams=data), f, ensure_ascii=False)
+
+
+def update_pizza_vote(data_dir: str, username: str, vote: str) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("update_pizza_vote")
+    # TODO Check if event is locked or not
+    logger.info(f"Reading file  : {data_dir}/teams/Pizza_series.json")
+    with open(f"{data_dir}/teams/Pizza_series.json") as f:
+        matches_data = json.load(f)
+        serie = matches_data["Series"][0]
+        data = serie["Teams"]
+        logger.info(f"Raw data is{data}")
+        for idx, team in enumerate(data):
+            logger.info(f"Iteartion {idx}, {team}")
+            logger.info(data[idx]["score"])
+            logger.info(team["Players"])
+            logger.info(vote)
+            logger.info(username)
+            # Delete other enries for this user
+            try:
+                data[idx]["score"].remove(username)
+            except ValueError:
+                pass
+            if team["Players"] == vote:
+                logger.info(f"Add bet for {username, vote}")
+                data[idx]["score"].append(username)
+            # Update totalvotes
+            data[idx]["TotalVotes"] = len(data[idx]["score"])
+
+        matches_data["Series"][0]["Teams"] = data
+        logger.info(f"matches_data {matches_data}")
+        with open(f"{data_dir}/teams/Pizza_series.json", "w") as f:
+            json.dump(matches_data, f, ensure_ascii=False, indent=4)
+
+
+def update_pizza_result(data_dir: str, username: str, vote: str) -> None:
+    pass
 
 
 def adapt_bet_file(data_dir: str, sport: str) -> None:

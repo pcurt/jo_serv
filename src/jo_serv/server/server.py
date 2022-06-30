@@ -1,5 +1,6 @@
 # Standard lib imports
 import datetime
+import gzip
 import hashlib
 import json
 import logging
@@ -9,7 +10,7 @@ import time
 
 import mariadb  # type: ignore
 import requests  # type: ignore
-from flask import Flask, Response, request  # type: ignore
+from flask import Flask, Response, make_response, request  # type: ignore
 
 from jo_serv.tools.tools import (
     adapt_bet_file,
@@ -231,6 +232,7 @@ def create_server(data_dir: str) -> Flask:
         if time.time() > (last_time + 15 * 60):  # filter 15 mins
             since = last_time - time.time()
             logger.info(f"cluedotime no cluedo since {since} s")
+            open(data_dir + "/lasttimecluedo", "w").write(str(time.time()))
             tokens = open(data_dir + "/tokens.txt", "r").readlines()
             for token in tokens:
                 if "ExponentPushToken" in token:
@@ -250,7 +252,6 @@ def create_server(data_dir: str) -> Flask:
                         open(data_dir + "/tokens.txt", "w").write(
                             full_txt.replace(token, "")
                         )
-            open(data_dir + "/lasttimecluedo", "w").write(str(time.time()))
         else:
             logger.info("ignore as it's less than 15 mins since last")
         return Response(response="fdp", status=200)
@@ -416,5 +417,47 @@ def create_server(data_dir: str) -> Flask:
             unlock(sport, data_dir)
 
         return Response(response="fdp", status=200)
+
+    @app.route("/canvasetcolor", methods=["POST"])
+    def canvasetcolor() -> Response:
+        decode_data = request.data.decode("utf-8")
+        json_data = json.loads(decode_data)
+        logger.info(f"Data received : {decode_data}")
+
+        id = int(json_data.get("id"))
+        color = json_data.get("color")
+        username = json_data.get("username")
+
+        with open(f"{data_dir}/teams/canva.json", "r") as file:
+            data = json.load(file)
+            data[id]["color"] = color
+            data[id]["name"] = username
+            with open(f"{data_dir}/teams/canva.json", "w") as file:
+                logger.info("Save canva data")
+                json.dump(data, file)
+        return Response(response="fdp", status=200)
+
+    @app.route("/canva", methods=["GET"])
+    def canva() -> Response:
+        logger.info("Get on : /canva")
+
+        if request.method == "GET":
+            if not os.path.exists(f"{data_dir}/teams/canva.json"):
+                logger.info("Canva file doesn't exist, create it")
+                canva: list = (
+                    [dict(color="white", name="Whisky", timestamp=0)] * 100 * 100
+                )
+                logger.info(f"Canva is {canva}")
+                with open(f"{data_dir}/teams/canva.json", "w") as file:
+                    json.dump(canva, file)
+            with open(f"{data_dir}/teams/canva.json", "r") as file:
+                resp = [0, json.loads(file.read())]
+                content = gzip.compress(json.dumps(resp).encode("utf8"), 5)
+                response = make_response(content)
+                response.headers["Content-length"] = len(content)
+                response.headers["Content-Encoding"] = "gzip"
+                return response
+
+        return Response(response="Error on endpoint canva", status=404)
 
     return app

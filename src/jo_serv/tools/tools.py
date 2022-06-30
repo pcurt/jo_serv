@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 from math import ceil
 from typing import Any, Dict, Tuple
@@ -624,8 +625,8 @@ def generate_pizza_results(data_dir: str) -> None:
             player["rank"] = rank
 
     year = str(datetime.date.today().year)
-    data: dict = dict()
-    data["2021"] = dict()  # No results in 2021
+    with open(f"{data_dir}/results/sports/Pizza_summary.json", "r") as file:
+        data = json.load(file)
     data[year] = dict(Teams=players_score)
     with open(f"{data_dir}/results/sports/Pizza_summary.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
@@ -694,26 +695,106 @@ def activities_list(include_date: bool = False) -> Any:
     if include_date:
         return {
             "Soirée d'ouverture!": ["2022-07-13T20:00:00", "2022-07-14T09:30:00"],
-            "Trail": ["2022-07-14T09:30:00", "2022-07-14T11:00:00"],
-            "Dodgeball": ["2022-07-14T11:00:00", "2022-07-14T13:00:00"],
-            "PingPong": ["2022-07-14T11:00:00", "2022-07-14T13:00:00"],
-            "Pizza": ["2022-07-14T12:00:00", "2022-07-14T15:00:00"],
-            "Volley": ["2022-07-14T14:00:00", "2022-07-14T17:00:00"],
-            "SpikeBall": ["2022-07-14T14:00:00", "2022-07-14T17:00:00"],
-            "Krossfit": ["2022-07-14T17:00:00", "2022-07-14T18:00:00"],
-            "Corde": ["2022-07-14T18:00:00", "2022-07-14T19:00:00"],
-            "Orientation": ["2022-07-14T19:00:00", "2022-07-14T20:00:00"],
-            "Beerpong": ["2022-07-15T10:00:00", "2022-07-15T14:00:00"],
-            "Waterpolo": ["2022-07-15T14:00:00", "2022-07-15T15:00:00"],
-            "Larmina": ["2022-07-15T14:00:00", "2022-07-15T15:00:00"],
-            "Blindtest": ["2022-07-15T14:00:00", "2022-07-15T15:00:00"],
-            "Tong": ["2022-07-15T15:00:00", "2022-07-14T17:00:00"],
-            "Babyfoot": ["2022-07-15T15:00:00", "2022-07-14T17:00:00"],
-            "Flechette": ["2022-07-15T15:00:00", "2022-07-14T17:00:00"],
-            "Slackline": ["2022-07-15T15:00:00", "2022-07-14T17:00:00"],
-            "Ventriglisse": ["2022-07-15T17:00:00", "2022-07-15T19:00:00"],
-            "100mRicard": ["2022-07-15T21:00:00", "2022-07-16T04:00:00"],
-            "Petanque": ["2022-07-16T11:00:00", "2022-07-16T13:00:00"],
+            "Trail": [
+                "2022-07-14T09:30:00",
+                "2022-07-14T11:00:00",
+                "2022-07-14T09:25:00",
+            ],
+            "Dodgeball": [
+                "2022-07-14T11:00:00",
+                "2022-07-14T13:00:00",
+                "2022-07-14T10:55:00",
+            ],
+            "PingPong": [
+                "2022-07-14T11:00:00",
+                "2022-07-14T13:00:00",
+                "2022-07-14T10:55:00",
+            ],
+            "Pizza": [
+                "2022-07-14T12:00:00",
+                "2022-07-14T15:00:00",
+                "2022-07-14T11:55:00",
+            ],
+            "Volley": [
+                "2022-07-14T14:00:00",
+                "2022-07-14T17:00:00",
+                "2022-07-14T13:55:00",
+            ],
+            "SpikeBall": [
+                "2022-07-14T14:00:00",
+                "2022-07-14T17:00:00",
+                "2022-07-14T13:55:00",
+            ],
+            "Blindtest": [
+                "2022-07-14T14:00:00",
+                "2022-07-14T17:00:00",
+                "2022-07-14T13:55:00",
+            ],
+            "Krossfit": [
+                "2022-07-14T17:00:00",
+                "2022-07-14T18:00:00",
+                "2022-07-14T16:55:00",
+            ],
+            "Corde": [
+                "2022-07-14T18:00:00",
+                "2022-07-14T19:00:00",
+                "2022-07-14T17:55:00",
+            ],
+            "Orientation": [
+                "2022-07-14T19:00:00",
+                "2022-07-14T20:00:00",
+                "2022-07-14T18:55:00",
+            ],
+            "Beerpong": [
+                "2022-07-15T10:00:00",
+                "2022-07-15T19:00:00",
+                "2022-07-15T09:55:00",
+            ],
+            "Larmina": [
+                "2022-07-15T10:00:00",
+                "2022-07-15T12:00:00",
+                "2022-07-15T09:55:00",
+            ],
+            "Tong": [
+                "2022-07-15T12:00:00",
+                "2022-07-14T14:00:00",
+                "2022-07-15T12:00:00",
+            ],
+            "Babyfoot": [
+                "2022-07-15T12:00:00",
+                "2022-07-14T14:00:00",
+                "2022-07-15T11:55:00",
+            ],
+            "Flechette": [
+                "2022-07-15T12:00:00",
+                "2022-07-14T14:00:00",
+                "2022-07-15T11:55:00",
+            ],
+            "Slackline": [
+                "2022-07-15T12:00:00",
+                "2022-07-14T14:00:00",
+                "2022-07-15T11:55:00",
+            ],
+            "Waterpolo": [
+                "2022-07-15T14:00:00",
+                "2022-07-15T15:00:00",
+                "2022-07-15T13:55:00",
+            ],
+            "Ventriglisse": [
+                "2022-07-15T18:00:00",
+                "2022-07-15T19:00:00",
+                "2022-07-15T17:55:00",
+            ],
+            "100mRicard": [
+                "2022-07-15T21:00:00",
+                "2022-07-16T04:00:00",
+                "2022-07-15T20:55:00",
+            ],
+            "Petanque": [
+                "2022-07-16T11:00:00",
+                "2022-07-16T13:00:00",
+                "2022-07-16T10:55:00",
+            ],
             "Rangement": ["2022-07-16T14:00:00", "2022-07-16T15:30:00"],
             "Remise des prix": ["2022-07-16T15:30:00", "2022-07-16T17:30:00"],
         }
@@ -901,7 +982,13 @@ def update_global_bets_results(data_dir: str) -> None:
 def generate_event_list(name: str, data_dir: str) -> None:
     arbitre_list: list = []
     playing_list: list = []
-    parse_json(name, ".json", playing_list, data_dir)
+    parse_json(name, ".json", playing_list, data_dir, exclude="_status")
+    parse_json(
+        name,
+        "_status.json",
+        arbitre_list,
+        data_dir,
+    )
     arbitre_list = sort_list(arbitre_list)
     playing_list = sort_list(playing_list)
     print(arbitre_list)
@@ -921,7 +1008,7 @@ def parse_json(
         if suffix in filename:
             if exclude is None or filename not in exclude:
                 with open(f"{data_dir}/teams/{filename}", "r") as file:
-                    if name_searched in file.read():
+                    if re.findall(f"\\b{name_searched}\\b", file.read()):
                         list_to_append.append(filename.split(suffix)[0])
 
 
@@ -1179,6 +1266,7 @@ def add_events_to_handler(data_dir: str) -> None:
             "args": {"sport": activity},
             "done": False,
         }
+        events.append(new_event_start)
         new_event_end = {
             "name": f"End {activity}",
             "date": activities[activity][1],
@@ -1186,7 +1274,15 @@ def add_events_to_handler(data_dir: str) -> None:
             "args": {"sport": activity},
             "done": False,
         }
-        events.append(new_event_start)
         events.append(new_event_end)
+        if len(activities[activity]) == 3:
+            new_event_lock = {
+                "name": f"Lock bets {activity}",
+                "date": activities[activity][2],
+                "callback": "lock_bets_sport",
+                "args": {"sport": activity},
+                "done": False,
+            }
+            events.append(new_event_lock)
     with open(f"{data_dir}/events.json", "w") as file:
         json.dump(dict(Events=events), file, ensure_ascii=False)

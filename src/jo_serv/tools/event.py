@@ -9,6 +9,7 @@ from typing import Any
 from jo_serv.tools.tools import (
     activities_list,
     calculate_rank_clicker,
+    generate_pizza_results,
     players_list,
     send_notif,
 )
@@ -140,6 +141,16 @@ def notif_end_sport(args: dict, data_dir: str) -> None:
     send_notif(to, title, body, data_dir)
 
 
+def lock_bets_sport(args: dict, data_dir: str) -> None:
+    sport = args["sport"]
+    with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
+        data = json.load(file)
+    data["states"].remove("paris")
+    data["states"].append("paris_locked")
+    with open(f"{data_dir}/teams/{sport}_status.json", "w") as file:
+        json.dump(data, file, ensure_ascii=False)
+
+
 def date_to_timestamp(date: str) -> float:
     return time.mktime(
         datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S").timetuple()
@@ -176,19 +187,11 @@ def get_callback(func_name: Any) -> Any:
 def set_end_pizza(data_dir: str) -> None:
     with open(f"{data_dir}/teams/Pizza_status.json", "r") as file:
         data = json.load(file)
-    data["arbitre"] = ["None"]
+    data["locked"] = True
     with open(f"{data_dir}/teams/Pizza_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
 
-    with open(f"{data_dir}results/sports/Pizza_summary.json", "r") as file:
-        teams = json.load(file)["Teams"]
-    for user in players_list():
-        with open(f"{data_dir}/teams/Pizza/{user}.json", "w") as file:
-            json.dump(
-                dict(Series=[dict(Name="Final", Teams=teams, Selected=0, NextSerie=0)]),
-                file,
-                ensure_ascii=False,
-            )
+    generate_pizza_results(data_dir)
     send_notif(
         "all",
         "Vote Pizza terminé",

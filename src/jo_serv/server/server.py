@@ -34,6 +34,8 @@ from jo_serv.tools.tools import (
     user_is_authorized,
 )
 
+canva_mutex = False
+
 
 def create_server(data_dir: str) -> Flask:
     """Create the server
@@ -423,19 +425,28 @@ def create_server(data_dir: str) -> Flask:
         decode_data = request.data.decode("utf-8")
         json_data = json.loads(decode_data)
         logger.info(f"Data received : {decode_data}")
-
+        global canva_mutex
+        while canva_mutex:
+            logger.info("Mutex is locked, wait")
+            time.sleep(1)
+        canva_mutex = True
         id = int(json_data.get("id"))
-        color = json_data.get("color")
-        username = json_data.get("username")
+        if id in range(0, 10000):
+            color = json_data.get("color")
+            username = json_data.get("username")
 
-        with open(f"{data_dir}/teams/canva.json", "r") as file:
-            data = json.load(file)
-            data[id]["color"] = color
-            data[id]["name"] = username
-            with open(f"{data_dir}/teams/canva.json", "w") as file:
-                logger.info("Save canva data")
-                json.dump(data, file)
-        return Response(response="fdp", status=200)
+            with open(f"{data_dir}/teams/canva.json", "r") as file:
+                data = json.load(file)
+                data[id]["color"] = color
+                data[id]["name"] = username
+                with open(f"{data_dir}/teams/canva.json", "w") as file:
+                    logger.info("Save canva data")
+                    json.dump(data, file)
+            canva_mutex = False
+            return Response(response="fdp", status=200)
+        else:
+            canva_mutex = False
+            return Response(response="wrongid", status=403)
 
     @app.route("/canva", methods=["GET"])
     def canva() -> Response:

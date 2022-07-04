@@ -597,6 +597,7 @@ def add_new_results(sport: str, results: Any, data_dir: str) -> None:
     teams[year] = results
     with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
         json.dump(teams, file, ensure_ascii=False)
+    update_global_bets_results(data_dir)
 
 
 def generate_pizza_results(data_dir: str) -> None:

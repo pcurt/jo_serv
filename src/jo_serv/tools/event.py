@@ -250,6 +250,7 @@ def raz(data_dir: str) -> None:
     raz_pizza_self_vote(data_dir)
     raz_results_per_sport(data_dir)
     raz_results_global(data_dir)
+    raz_bets_results(data_dir)
     restore_unplayed_matchs(data_dir)
     raz_medals_per_player(data_dir)
 
@@ -286,8 +287,20 @@ def raz_results_global(data_dir: str) -> None:
         json.dump(data, file)
 
 
+def raz_bets_results(data_dir: str) -> None:
+    with open(f"{data_dir}/results/global_bets.json", "r") as file:
+        data = json.load(file)
+    for player in data:
+        player["rank"] = 1
+        player["score"] = 0
+    with open(f"{data_dir}/results/global_bets.json", "w") as file:
+        json.dump(data, file)
+
+
 def restore_unplayed_matchs(data_dir: str) -> None:
-    os.system("cp -r {data_dir}/teams/save/* {data_dir}/teams/")  # nosec
+    os.system(f"cp -r {data_dir}/teams/save/*_series.json {data_dir}/teams/")  # nosec
+    os.system(f"cp -r {data_dir}/teams/save/*_playoff.json {data_dir}/teams/")  # nosec
+    os.system(f"cp -r {data_dir}/teams/save/*_poules.json {data_dir}/teams/")  # nosec
 
 
 def raz_medals_per_player(data_dir: str) -> None:

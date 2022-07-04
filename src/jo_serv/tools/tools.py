@@ -1286,3 +1286,36 @@ def add_events_to_handler(data_dir: str) -> None:
             events.append(new_event_lock)
     with open(f"{data_dir}/events.json", "w") as file:
         json.dump(dict(Events=events), file, ensure_ascii=False)
+
+
+def increase_canva_size(data_dir: str, lines: int, column: int) -> None:
+    logger = logging.getLogger(__name__)
+    logger.info("increase_canva_size")
+    with open(f"{data_dir}/teams/canva.json", "r") as file:
+        data = json.load(file)
+        current_lines_number = data["lines_nb"]
+        current_column_number = int(len(data["canva"]) / current_lines_number)
+        logger.info(f"Column length is {current_column_number}")
+        logger.info(f"Lines number is {current_lines_number}")
+
+        # Create new empty canva
+        new_canva: list = (
+            [dict(color="white", name="Whisky")]
+            * (current_column_number + column)
+            * (current_lines_number + lines)
+        )
+        new_index = 0
+        for case in data["canva"]:
+            # Get previous data
+            new_canva[new_index] = case
+            new_index = new_index + 1
+            if new_index % current_column_number == 0:
+                # Go to next line
+                new_index = new_index + column
+
+        lines_nb = current_lines_number + lines
+
+        # save new canva
+        with open(f"{data_dir}/teams/canva.json", "w") as file:
+            logger.info("Save new canva")
+            json.dump(dict(lines_nb=lines_nb, canva=new_canva), file)

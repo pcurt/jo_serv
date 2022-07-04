@@ -431,14 +431,14 @@ def create_server(data_dir: str) -> Flask:
             time.sleep(1)
         canva_mutex = True
         id = int(json_data.get("id"))
-        if id in range(0, 10000):
+        if id >= 0:
             color = json_data.get("color")
             username = json_data.get("username")
 
             with open(f"{data_dir}/teams/canva.json", "r") as file:
                 data = json.load(file)
-                data[id]["color"] = color
-                data[id]["name"] = username
+                data["canva"][id]["color"] = color
+                data["canva"][id]["name"] = username
                 with open(f"{data_dir}/teams/canva.json", "w") as file:
                     logger.info("Save canva data")
                     json.dump(data, file)
@@ -462,7 +462,7 @@ def create_server(data_dir: str) -> Flask:
                 with open(f"{data_dir}/teams/canva.json", "w") as file:
                     json.dump(canva, file)
             with open(f"{data_dir}/teams/canva.json", "r") as file:
-                resp = [0, json.loads(file.read())]
+                resp = json.loads(file.read())
                 content = gzip.compress(json.dumps(resp).encode("utf8"), 5)
                 response = make_response(content)
                 response.headers["Content-length"] = len(content)

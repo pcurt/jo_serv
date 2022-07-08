@@ -1,4 +1,5 @@
 # Standard lib imports
+import copy
 import datetime
 import gzip
 import hashlib
@@ -6,11 +7,13 @@ import json
 import logging
 import os
 import re
+import shutil
 import time
+from threading import Lock
 
 import mariadb  # type: ignore
 import requests  # type: ignore
-from flask import Flask, Response, make_response, request  # type: ignore
+from flask import Flask, Response, make_response, request, send_file  # type: ignore
 
 from jo_serv.tools.tools import (
     adapt_bet_file,
@@ -34,7 +37,10 @@ from jo_serv.tools.tools import (
     user_is_authorized,
 )
 
-canva_mutex = False
+MAX_NUMBER_CANVA = 50
+live_update_mutex = Lock()
+png_mutex = Lock()
+canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 
 
 def create_server(data_dir: str) -> Flask:
@@ -420,55 +426,133 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="fdp", status=200)
 
+    @app.route("/canvalive", methods=["GET"])
+    def canvalive() -> Response:
+        live_update_mutex.acquire()
+        try:
+            with open(f"{data_dir}/teams/canva/live_update.json", "r") as file:
+                live_data = json.load(file)
+        finally:
+            live_update_mutex.release()
+        return make_response(dict(live=live_data))
+
     @app.route("/canvasetcolor", methods=["POST"])
     def canvasetcolor() -> Response:
         decode_data = request.data.decode("utf-8")
         json_data = json.loads(decode_data)
+        live_update_mutex.acquire()
+        try:
+            with open(f"{data_dir}/teams/canva/live_update.json", "r") as file:
+                live_update = json.load(file)
+            live_update.append(json_data)
+            with open(f"{data_dir}/teams/canva/live_update.json", "w") as file:
+                json.dump(live_update, file)
+        finally:
+            live_update_mutex.release()
         logger.info(f"Data received : {decode_data}")
-        global canva_mutex
-        while canva_mutex:
-            logger.info("Mutex is locked, wait")
-            time.sleep(1)
-        canva_mutex = True
         id = int(json_data.get("id"))
-        if id >= 0:
-            color = json_data.get("color")
-            username = json_data.get("username")
+        pixel_per_line = 200  # todo: configurable
+        pixel_per_col = 200
+        number_of_tile_x = 4  # 200/50
+        number_of_tile_y = 4
+        x_coord = int(id % pixel_per_line / 50)
+        y_coord = int(id / pixel_per_line / 50)
+        canva_number = x_coord + y_coord * number_of_tile_x
 
-            with open(f"{data_dir}/teams/canva.json", "r") as file:
-                data = json.load(file)
-                data["canva"][id]["color"] = color
-                data["canva"][id]["name"] = username
-                with open(f"{data_dir}/teams/canva.json", "w") as file:
-                    logger.info("Save canva data")
+        canva_array_mutex[canva_number].acquire()
+        try:
+            if id >= 0:
+                x = id % 50
+                y = int(id / 200)  # line in absolute
+                id = x + (y % 50) * 50
+                color = json_data.get("color")
+                username = json_data.get("username")
+                if not os.path.exists(
+                    f"{data_dir}/teams/canva/canva{canva_number}.json"
+                ):
+                    return Response(response="wrongid", status=404)
+                with open(
+                    f"{data_dir}/teams/canva/canva{canva_number}.json", "r"
+                ) as file:
+                    data = json.load(file)
+                    data[id]["color"] = color
+                    data[id]["name"] = username
+                with open(
+                    f"{data_dir}/teams/canva/canva{canva_number}.json", "w"
+                ) as file:
                     json.dump(data, file)
-            canva_mutex = False
-            return Response(response="fdp", status=200)
-        else:
-            canva_mutex = False
-            return Response(response="wrongid", status=403)
+                with open(
+                    f"{data_dir}/teams/canva/canva{canva_number}.json", "r"
+                ) as file:
+                    raw_txt = file.read()
+                m = hashlib.sha256()
+                m.update(str.encode(raw_txt))
+                with open(
+                    f"{data_dir}/teams/canva/canva{canva_number}.sha256", "w"
+                ) as file:
+                    file.write(m.hexdigest())
+                return Response(response="fdp", status=200)
+            else:
+                return Response(response="wrongid", status=403)
+        except Exception as e:
+            logger.info(f"issue in canvasetcolor {e}")
+        finally:
+            canva_array_mutex[canva_number].release()
 
-    @app.route("/canva", methods=["GET"])
-    def canva() -> Response:
-        logger.info("Get on : /canva")
-
+    @app.route("/canvausername/<path:localid>", methods=["GET"])
+    def canvausername(localid: int) -> Response:
+        logger.info("Get on : /canvausername")
         if request.method == "GET":
-            if not os.path.exists(f"{data_dir}/teams/canva.json"):
-                logger.info("Canva file doesn't exist, create it")
-                canva: list = (
-                    [dict(color="white", name="Whisky", timestamp=0)] * 100 * 100
-                )
-                logger.info(f"Canva is {canva}")
-                with open(f"{data_dir}/teams/canva.json", "w") as file:
-                    json.dump(canva, file)
-            with open(f"{data_dir}/teams/canva.json", "r") as file:
-                resp = json.loads(file.read())
-                content = gzip.compress(json.dumps(resp).encode("utf8"), 5)
-                response = make_response(content)
-                response.headers["Content-length"] = len(content)
-                response.headers["Content-Encoding"] = "gzip"
-                return response
+            id = int(localid)
+            if id >= 0:
+                pixel_per_line = 200  # todo: configurable
+                pixel_per_col = 200
+                number_of_tile_x = 4
+                x_coord = int(id % pixel_per_line / 50)
+                y_coord = int(id / pixel_per_line / 50)
+                canva_number = x_coord + y_coord * number_of_tile_x
+                x = id % 50
+                y = int(id / 200)  # line in absolute
+                id = x + (y % 50) * 50
+                logger.info(f"{id}, {canva_number}, {localid}")
+                with open(
+                    f"{data_dir}/teams/canva/canva{canva_number}.json", "r"
+                ) as file:
+                    data = json.load(file)
+                    username = data[id]["name"]
+                    response = make_response(username)
+                    response.headers["Content-length"] = len(username)
+                    return response
+        return Response(response="wrongid", status=404)
 
+    @app.route("/canvasizedev", methods=["GET"])
+    def canvasizedev() -> Response:
+        logger.info("Get on : /canvasizedev")
+        if request.method == "GET":
+            size_json = json.load(open(f"{data_dir}/teams/canva/sizecanva.json", "r"))
+            resp = dict(lines=size_json.get("lines"), cols=size_json.get("cols"))
+            return make_response(resp)
+
+        return Response(response="Error on endpoint canva", status=404)
+
+    @app.route("/canvadev", methods=["GET"])
+    def canvadev() -> Response:
+        logger.info("Get on : /canvadev")
+        if request.method == "GET":
+            try:
+                if png_mutex.locked():
+                    resp = send_file(
+                        f"{data_dir}/teams/canva/canva2.png", mimetype="image/png"
+                    )
+                else:
+                    resp = send_file(
+                        f"{data_dir}/teams/canva/canva.png", mimetype="image/png"
+                    )
+            except Exception as e:
+                logger.error(f"Error in sending image {e}")
+                resp = Response(response="Error on endpoint canva", status=404)
+            finally:
+                return resp
         return Response(response="Error on endpoint canva", status=404)
 
     return app

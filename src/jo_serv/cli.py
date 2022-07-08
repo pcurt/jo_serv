@@ -14,9 +14,11 @@ from waitress import serve  # type: ignore
 
 # Local package imports
 from jo_serv.server.server import create_server
+from jo_serv.tools.canva import canva_png_creator
 from jo_serv.tools.event import event_handler
 from jo_serv.tools.tools import (
     create_empty_bet_files,
+    increase_canva_size,
     update_global_bets_results,
     update_global_results,
 )
@@ -77,6 +79,8 @@ def srv(
 
     event = threading.Thread(target=event_handler, args=(data_dir,))
     event.start()
+    canva = threading.Thread(target=canva_png_creator, args=(data_dir,))
+    canva.start()
 
     app = create_server(data_dir=data_dir)
     serve(app, port=8000)
@@ -144,6 +148,27 @@ def global_results(
     logger = logging.getLogger((__name__))
     logger.info("Start update_global_results")
     update_global_results(data_dir=data_dir)
+
+
+@click.option(
+    "--data-dir",
+    help="Path to the data dir",
+    default="./",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
+)
+@main.command()
+def enlarge(
+    data_dir: str,
+) -> None:
+    logger = logging.getLogger((__name__))
+    logger.info("Start increase_canva_size")
+    increase_canva_size(data_dir=data_dir, lines=100, column=100)
 
 
 if __name__ == "__main__":

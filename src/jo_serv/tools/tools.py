@@ -12,6 +12,24 @@ from typing import Any, Dict, Tuple
 
 import requests  # type: ignore
 
+palette_colors = [
+    "white",
+    "purple",
+    "darkblue",
+    "blue",
+    "lightblue",
+    "green",
+    "lightgreen",
+    "yellow",
+    "brown",
+    "orange",
+    "red",
+    "pink",
+    "lightgrey",
+    "grey",
+    "black",
+]
+
 
 def create_empty_dict(excel_sheet: Any) -> dict:
     athletes: dict = dict()
@@ -1317,6 +1335,6 @@ def increase_canva_size(data_dir: str, lines: int, column: int) -> None:
         lines_nb = current_lines_number + lines
 
         # save new canva
-        with open(f"{data_dir}/teams/canva.json", "w") as file:
+        with open(f"{data_dir}/teams/canva_dev.json", "w") as file:
             logger.info("Save new canva")
             json.dump(dict(lines_nb=lines_nb, canva=new_canva), file)

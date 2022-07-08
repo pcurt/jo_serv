@@ -28,7 +28,7 @@ def event_handler(data_dir: str) -> None:
                     continue
                 logger.debug(f"Event to check {event}")
                 date = date_to_timestamp(event["date"])
-                if date_is_more_or_less_now(date):
+                if date_has_passed(date):
                     call_back = get_callback(event["callback"])
                     logger.info(f"Trig event {event}")
                     if "args" in event:
@@ -163,9 +163,9 @@ def get_events(data_dir: str) -> Any:
     return data["Events"]
 
 
-def date_is_more_or_less_now(date: float) -> bool:
+def date_has_passed(date: float) -> bool:
     now = time.time()
-    if now - 31 <= date <= now + 31:
+    if date < now:
         return True
     return False
 
@@ -201,7 +201,7 @@ def set_end_pizza(data_dir: str) -> None:
 
 
 def save_current_clicker_scores(data_dir: str) -> None:
-    shutil.copy("{data_dir}/teams/Clicker.json", "{data_dir}/teams/Clicker_save.json")
+    shutil.copy(f"{data_dir}/teams/Clicker.json", f"{data_dir}/teams/Clicker_save.json")
 
 
 def compare_clicker_scores(data_dir: str) -> dict:
@@ -330,14 +330,20 @@ def test(data_dir: str) -> None:
     send_notif("Antoine", "Just a test", "I'm still alive", data_dir)
 
 
-def backup_logs(data_dir: str) -> None:
-    now = int(time.time())
+def backup_canva(data_dir: str) -> None:
 
+    now = int(time.time())
+    for filename in os.listdir(f"{data_dir}/teams/canva"):
+        if "canva" in filename and ".json" in filename:
+            shutil.copy(
+                f"{data_dir}/teams/canva/{filename}",
+                f"{data_dir}/teams/canva/bak/{now}{filename}",
+            )
     with open(f"{data_dir}/events.json", "r") as file:
         data = json.load(file)
-    date = datetime.datetime.fromtimestamp(now + 3600 * 3).strftime("%Y-%m-%dT%H:%M:%S")
+    date = datetime.datetime.fromtimestamp(now + 3 * 60).strftime("%Y-%m-%dT%H:%M:%S")
     data["Events"].append(
-        dict(name=f"backup: {date}", date=date, callback="backup_logs", done=False)
+        dict(name=f"backup: {date}", date=date, callback="backup_canva", done=False)
     )
     with open(f"{data_dir}/events.json", "w") as file:
         json.dump(data, file)

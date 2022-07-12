@@ -1,13 +1,10 @@
 # Standard lib imports
-import copy
 import datetime
-import gzip
 import hashlib
 import json
 import logging
 import os
 import re
-import shutil
 import time
 from threading import Lock
 
@@ -17,6 +14,7 @@ from flask import Flask, Response, make_response, request, send_file  # type: ig
 
 from jo_serv.tools.tools import (
     adapt_bet_file,
+    generate_can_be_added_list,
     generate_event_list,
     generate_pizza_results,
     generate_pools,
@@ -27,6 +25,7 @@ from jo_serv.tools.tools import (
     players_list,
     send_notif,
     team_to_next_step,
+    toggle_lock_bets,
     unlock,
     update_bet_file,
     update_global_results,
@@ -37,9 +36,11 @@ from jo_serv.tools.tools import (
     user_is_authorized,
 )
 
-MAX_NUMBER_CANVA = 50
+CANVA_SIZE = 50
+MAX_NUMBER_CANVA = 500
 live_update_mutex = Lock()
 png_mutex = Lock()
+size_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 
 
@@ -351,6 +352,8 @@ def create_server(data_dir: str) -> Flask:
             file_name = file_name[:-5] + "_playoff.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(table, file, ensure_ascii=False)
+            with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
+                json.dump(table, file, ensure_ascii=False)
             with open(f"{data_dir}/teams/{file_name}", "r") as file:
                 data = json.load(file)
             matches = data["matches"]
@@ -363,16 +366,21 @@ def create_server(data_dir: str) -> Flask:
             file_name = file_name[:-5] + "_poules.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(pools, file, ensure_ascii=False)
+            with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
+                json.dump(pools, file, ensure_ascii=False)
             logger.info("Pools renewed")
         elif sport_config["Type"] == "Series":
             series = generate_series(new_teams, sport_config)
             file_name = file_name[:-5] + "_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
+            with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
+                json.dump(series, file, ensure_ascii=False)
             logger.info("Series renewed")
         adapt_bet_file(data_dir, sport)
         for player in players_list():
             generate_event_list(player, data_dir)
+        generate_can_be_added_list(sport, data_dir)
         return Response(response="fdp", status=200)
 
     @app.route("/bets/<path:name>", methods=["GET", "POST"])
@@ -410,6 +418,22 @@ def create_server(data_dir: str) -> Flask:
             return Response(response="fdp", status=200)
         return Response(response="Error on endpoint pushBets", status=404)
 
+    @app.route("/lockBets", methods=["POST"])
+    def lockBets() -> Response:
+        """Lock bets endpoints
+
+        Returns:
+            Response: The operation status
+        """
+        if request.method == "POST":
+            logger.info("Post on /lockBets")
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            sport = json_data.get("sport")
+            toggle_lock_bets(sport, data_dir)
+            return Response(response="fdp", status=200)
+        return Response(response="Error on endpoint pushBets", status=404)
+
     @app.route("/locksport", methods=["POST"])
     def locksport() -> Response:
         decode_data = request.data.decode("utf-8")
@@ -436,6 +460,8 @@ def create_server(data_dir: str) -> Flask:
             live_update_mutex.release()
         return make_response(dict(live=live_data))
 
+    # todo: endpoint enlarge must change global variable line/col
+
     @app.route("/canvasetcolor", methods=["POST"])
     def canvasetcolor() -> Response:
         decode_data = request.data.decode("utf-8")
@@ -451,20 +477,28 @@ def create_server(data_dir: str) -> Flask:
             live_update_mutex.release()
         logger.info(f"Data received : {decode_data}")
         id = int(json_data.get("id"))
-        pixel_per_line = 200  # todo: configurable
-        pixel_per_col = 200
-        number_of_tile_x = 4  # 200/50
-        number_of_tile_y = 4
-        x_coord = int(id % pixel_per_line / 50)
-        y_coord = int(id / pixel_per_line / 50)
-        canva_number = x_coord + y_coord * number_of_tile_x
-
+        size_mutex.acquire()
+        try:
+            size_json = json.load(open(f"{data_dir}/teams/canva/sizecanva.json", "r"))
+        finally:
+            size_mutex.release()
+        col_nb = int(size_json.get("cols"))
+        if int(json_data.get("cols")) != col_nb:
+            return Response(response="Wrong col numbers", status=403)
+        line_nb = int(size_json.get("lines"))
+        if int(json_data.get("lines")) != line_nb:
+            return Response(response="Wrong line numbers", status=403)
+        pixel_per_line = col_nb  # todo: configurable
+        number_of_tile_x = col_nb / CANVA_SIZE  # 200/50
+        x_coord = int(id % pixel_per_line / CANVA_SIZE)
+        y_coord = int(id / pixel_per_line / CANVA_SIZE)
+        canva_number = int(x_coord + y_coord * number_of_tile_x)
         canva_array_mutex[canva_number].acquire()
         try:
             if id >= 0:
-                x = id % 50
-                y = int(id / 200)  # line in absolute
-                id = x + (y % 50) * 50
+                x = id % CANVA_SIZE
+                y = int(id / pixel_per_line)  # line in absolute
+                id = x + (y % CANVA_SIZE) * CANVA_SIZE
                 color = json_data.get("color")
                 username = json_data.get("username")
                 if not os.path.exists(
@@ -498,6 +532,7 @@ def create_server(data_dir: str) -> Flask:
             logger.info(f"issue in canvasetcolor {e}")
         finally:
             canva_array_mutex[canva_number].release()
+            return Response(response="fdp", status=200)
 
     @app.route("/canvausername/<path:localid>", methods=["GET"])
     def canvausername(localid: int) -> Response:
@@ -505,15 +540,22 @@ def create_server(data_dir: str) -> Flask:
         if request.method == "GET":
             id = int(localid)
             if id >= 0:
-                pixel_per_line = 200  # todo: configurable
-                pixel_per_col = 200
-                number_of_tile_x = 4
-                x_coord = int(id % pixel_per_line / 50)
-                y_coord = int(id / pixel_per_line / 50)
-                canva_number = x_coord + y_coord * number_of_tile_x
-                x = id % 50
-                y = int(id / 200)  # line in absolute
-                id = x + (y % 50) * 50
+                size_mutex.acquire()
+                try:
+                    size_json = json.load(
+                        open(f"{data_dir}/teams/canva/sizecanva.json", "r")
+                    )
+                finally:
+                    size_mutex.release()
+                col_nb = size_json.get("cols")
+                pixel_per_line = col_nb  # todo: configurable
+                number_of_tile_x = pixel_per_line / CANVA_SIZE
+                x_coord = int(id % pixel_per_line / CANVA_SIZE)
+                y_coord = int(id / pixel_per_line / CANVA_SIZE)
+                canva_number = int(x_coord + y_coord * number_of_tile_x)
+                x = id % CANVA_SIZE
+                y = int(id / pixel_per_line)  # line in absolute
+                id = x + (y % CANVA_SIZE) * CANVA_SIZE
                 logger.info(f"{id}, {canva_number}, {localid}")
                 with open(
                     f"{data_dir}/teams/canva/canva{canva_number}.json", "r"
@@ -529,7 +571,13 @@ def create_server(data_dir: str) -> Flask:
     def canvasizedev() -> Response:
         logger.info("Get on : /canvasizedev")
         if request.method == "GET":
-            size_json = json.load(open(f"{data_dir}/teams/canva/sizecanva.json", "r"))
+            size_mutex.acquire()
+            try:
+                size_json = json.load(
+                    open(f"{data_dir}/teams/canva/sizecanva.json", "r")
+                )
+            finally:
+                size_mutex.release()
             resp = dict(lines=size_json.get("lines"), cols=size_json.get("cols"))
             return make_response(resp)
 
@@ -552,7 +600,7 @@ def create_server(data_dir: str) -> Flask:
                 logger.error(f"Error in sending image {e}")
                 resp = Response(response="Error on endpoint canva", status=404)
             finally:
-                return resp
+                return Response(response=resp, status=200)
         return Response(response="Error on endpoint canva", status=404)
 
     return app

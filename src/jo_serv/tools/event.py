@@ -145,8 +145,9 @@ def lock_bets_sport(args: dict, data_dir: str) -> None:
     sport = args["sport"]
     with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
         data = json.load(file)
-    data["states"].remove("paris")
-    data["states"].append("paris_locked")
+    if "paris" in data["states"]:
+        data["states"].remove("paris")
+        data["states"].append("paris_locked")
     with open(f"{data_dir}/teams/{sport}_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
 
@@ -333,12 +334,10 @@ def test(data_dir: str) -> None:
 def backup_canva(data_dir: str) -> None:
 
     now = int(time.time())
-    for filename in os.listdir(f"{data_dir}/teams/canva"):
-        if "canva" in filename and ".json" in filename:
-            shutil.copy(
-                f"{data_dir}/teams/canva/{filename}",
-                f"{data_dir}/teams/canva/bak/{now}{filename}",
-            )
+    os.system(f"touch {data_dir}/teams/canva/bak/canva{now}.gz")  # nosec
+    os.system(  # nosec
+        f"tar cfz {data_dir}/teams/canva/bak/canva{now}.gz {data_dir}/teams/canva/*.json"
+    )
     with open(f"{data_dir}/events.json", "r") as file:
         data = json.load(file)
     date = datetime.datetime.fromtimestamp(now + 3 * 60).strftime("%Y-%m-%dT%H:%M:%S")

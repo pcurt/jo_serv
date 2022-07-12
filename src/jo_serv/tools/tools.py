@@ -1,17 +1,20 @@
 import copy
 import datetime
 import glob
+import hashlib
 import json
 import logging
 import os
 import random
 import re
+import shutil
 import string
 from math import ceil
 from typing import Any, Dict, Tuple
 
 import requests  # type: ignore
 
+CANVA_SIZE = 50
 palette_colors = [
     "white",
     "purple",
@@ -688,7 +691,7 @@ def players_list() -> list:
         "Shmav",
         "LaGuille",
         "Ugo",
-        "Chloé",
+        "Chloe",
         "Brice",
         "Max",
         "Bryan",
@@ -708,6 +711,12 @@ def players_list() -> list:
         "Clement",
         "Bifteck",
     ]
+
+
+def users_list() -> list:
+    users = players_list()
+    users.append("Willy")
+    return users
 
 
 def activities_list(include_date: bool = False) -> Any:
@@ -970,7 +979,7 @@ def update_global_bets_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("update_global_bets_results")
     results = []
-    for athlete in players_list():
+    for athlete in users_list():
         logger.info(f"Update player {athlete}")
         result = get_bet_score(athlete, data_dir)
         results.append(result)
@@ -1307,34 +1316,107 @@ def add_events_to_handler(data_dir: str) -> None:
         json.dump(dict(Events=events), file, ensure_ascii=False)
 
 
-def increase_canva_size(data_dir: str, lines: int, column: int) -> None:
+def increase_canva_size(data_dir: str, tile_x: int, tile_y: int) -> None:
     logger = logging.getLogger(__name__)
     logger.info("increase_canva_size")
-    with open(f"{data_dir}/teams/canva.json", "r") as file:
+    for tocheck in [tile_x, tile_y]:
+        if tocheck < 0:
+            # if tocheck % CANVA_SIZE != 0:
+            logger.error(f"{tocheck.__str__()} number must be  positive")
+            return
+
+    # todo : change global size of canva in esrver.py +
+    # may be change appli so it sends its actual size
+    # size_mutex.acquire()
+    # try:
+    size_json = json.load(open(f"{data_dir}/teams/canva/sizecanva.json", "r"))
+    # finally::
+    # size_mutex.release()
+    actual_lines_nb = int(size_json.get("lines"))
+    actual_cols_nb = int(size_json.get("cols"))
+    number_canva = int(size_json.get("numbercanva"))
+    actual_canva_per_line = int(actual_cols_nb / CANVA_SIZE)
+    new_canva_per_line = actual_canva_per_line + tile_x
+    actual_canva_per_col = int(actual_lines_nb / CANVA_SIZE)
+    new_number_canva = number_canva + actual_canva_per_col * tile_x
+    new_number_canva += new_canva_per_line * tile_y
+    # first we need to rename existing canvas
+    list_missing = [x for x in range(actual_canva_per_line, new_number_canva)]
+    empty_canva: list = [dict(color="white", name="Whisky")] * CANVA_SIZE * CANVA_SIZE
+    file_to_rename = []
+    if tile_x != 0:
+        offset = 0
+        for i in range(actual_canva_per_line, number_canva):
+            if i % actual_canva_per_line == 0:
+                offset += tile_x
+            list_missing.remove(i + offset)
+            # canva_array_mutex[i].acquire()
+            # try:
+            file_to_rename.append(f"{data_dir}/teams/canva/canva{i+offset}_tmp.json")
+            shutil.copyfile(
+                f"{data_dir}/teams/canva/canva{i}.json",
+                f"{data_dir}/teams/canva/canva{i+offset}_tmp.json",
+            )
+        for i in list_missing:
+            with open(f"{data_dir}/teams/canva/canva{i}.json", "w") as file:
+                json.dump(empty_canva, file)
+        for filename in file_to_rename:
+            shutil.move(filename, filename.replace("_tmp.json", ".json"))
+            # finally:
+            #     canva_array_mutex[i].release()
+    if tile_y != 0:  # way easier, we just create at the end!
+        for i in range(number_canva, new_number_canva):
+            with open(f"{data_dir}/teams/canva/canva{i}.json", "w") as file:
+                json.dump(empty_canva, file)
+    for filename in os.listdir(f"{data_dir}/teams/canva"):
+        if ".json" in filename and "canva" in filename:
+            if not os.path.exists(
+                f"{data_dir}/teams/canva/" + filename.replace(".json", ".sha256")
+            ):
+                with open(f"{data_dir}/teams/canva/" + filename, "r") as file:
+                    data = file.read()
+                m = hashlib.sha256()
+                m.update(str.encode(data))
+                with open(
+                    f"{data_dir}/teams/canva/" + filename.replace(".json", ".sha256"),
+                    "w",
+                ) as file:
+                    file.write(m.hexdigest())
+    size_json["lines"] = int(size_json["lines"]) + tile_y * CANVA_SIZE
+    size_json["cols"] = int(size_json["cols"]) + tile_x * CANVA_SIZE
+    size_json["numbercanva"] = new_number_canva
+    json.dump(size_json, open(f"{data_dir}/teams/canva/sizecanva.json", "w"))
+
+
+def get_non_registered(sport: str, data_dir: str) -> list:
+    with open(f"{data_dir}/teams/{sport}.json", "r") as file:
         data = json.load(file)
-        current_lines_number = data["lines_nb"]
-        current_column_number = int(len(data["canva"]) / current_lines_number)
-        logger.info(f"Column length is {current_column_number}")
-        logger.info(f"Lines number is {current_lines_number}")
+        non_registered = []
+        for player in players_list():
+            if not any(player in team["Players"] for team in data["Teams"]):
+                non_registered.append(player)
+    return non_registered
 
-        # Create new empty canva
-        new_canva: list = (
-            [dict(color="white", name="Whisky")]
-            * (current_column_number + column)
-            * (current_lines_number + lines)
-        )
-        new_index = 0
-        for case in data["canva"]:
-            # Get previous data
-            new_canva[new_index] = case
-            new_index = new_index + 1
-            if new_index % current_column_number == 0:
-                # Go to next line
-                new_index = new_index + column
 
-        lines_nb = current_lines_number + lines
+def generate_can_be_added_list(sport: str, data_dir: str) -> None:
+    non_registered = get_non_registered(sport, data_dir)
+    with open(f"{data_dir}/teams/{sport}.json", "r") as file:
+        data = json.load(file)
+    data["Others"] = []
+    for player in non_registered:
+        data["Others"].append(dict(Players=player))
+    with open(f"{data_dir}/teams/{sport}.json", "w") as file:
+        json.dump(data, file)
 
-        # save new canva
-        with open(f"{data_dir}/teams/canva_dev.json", "w") as file:
-            logger.info("Save new canva")
-            json.dump(dict(lines_nb=lines_nb, canva=new_canva), file)
+
+def toggle_lock_bets(sport: str, data_dir: str) -> None:
+    with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
+        data = json.load(file)
+    if "paris" in data["states"]:
+        data["states"].remove("paris")
+        data["states"].append("paris_locked")
+    else:
+        data["states"].remove("paris_locked")
+        data["states"].append("paris")
+    with open(f"{data_dir}/teams/{sport}_status.json", "w") as file:
+        json.dump(data, file, ensure_ascii=False)

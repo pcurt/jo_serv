@@ -162,13 +162,13 @@ def global_results(
         resolve_path=True,
     ),
 )
+@click.option("-x", help="tile_x", default=0, type=int)
+@click.option("-y", help="tile_y", default=0, type=int)
 @main.command()
-def enlarge(
-    data_dir: str,
-) -> None:
+def enlarge(data_dir: str, x: int = 0, y: int = 0) -> None:
     logger = logging.getLogger((__name__))
     logger.info("Start increase_canva_size")
-    increase_canva_size(data_dir=data_dir, lines=100, column=100)
+    increase_canva_size(data_dir=data_dir, tile_x=x, tile_y=y)
 
 
 if __name__ == "__main__":

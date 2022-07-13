@@ -7,6 +7,7 @@ import os
 import re
 import time
 from threading import Lock
+from typing import Any
 
 import mariadb  # type: ignore
 import requests  # type: ignore
@@ -584,7 +585,7 @@ def create_server(data_dir: str) -> Flask:
         return Response(response="Error on endpoint canva", status=404)
 
     @app.route("/canvadev", methods=["GET"])
-    def canvadev() -> Response:
+    def canvadev() -> Any:
         logger.info("Get on : /canvadev")
         if request.method == "GET":
             try:
@@ -600,7 +601,7 @@ def create_server(data_dir: str) -> Flask:
                 logger.error(f"Error in sending image {e}")
                 resp = Response(response="Error on endpoint canva", status=404)
             finally:
-                return Response(response=resp, status=200)
+                return resp
         return Response(response="Error on endpoint canva", status=404)
 
     return app

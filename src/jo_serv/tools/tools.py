@@ -304,6 +304,8 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
                         for _ in range(teams_per_match):
                             serie["Teams"].append(dict(Players="", rank=0, score=""))
             return series
+        else:
+            final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
     else:
         final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
     for team in teams:
@@ -1010,7 +1012,9 @@ def update_global_bets_results(data_dir: str) -> None:
 def generate_event_list(name: str, data_dir: str) -> None:
     arbitre_list: list = []
     playing_list: list = []
-    parse_json(name, ".json", playing_list, data_dir, exclude="_status")
+    parse_json(name, "_series.json", playing_list, data_dir)
+    parse_json(name, "_playoff.json", playing_list, data_dir)
+    parse_json(name, "_poules.json", playing_list, data_dir)
     parse_json(
         name,
         "_status.json",

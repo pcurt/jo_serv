@@ -23,9 +23,9 @@ Note that you should ideally run these `pip` commands in an active [virtualenv](
 To install jo_serv, download the latest release archive fom Github, and run this command in your terminal:
 
 ``` sh
-pip install jo_serv-0.1.0-py3-none-any.whl
+pip install jo_serv-1.0.0-py3-none-any.whl
 # or
-pip install jo_serv-0.1.0.tar.gz
+pip install jo_serv-1.0.0.tar.gz
 ```
 
 ### From sources

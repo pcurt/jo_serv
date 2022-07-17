@@ -386,7 +386,8 @@ def update_playoff_match(
         thirds = []
         for match in matches_data["matches"]:
             if match["level"] == matches_data["levels"] - 2:
-                third = match["team1"] if match["over"] == 2 else match_data["team2"]
+                logger.info(match)
+                third = match["team1"] if match["over"] == 2 else match["team2"]
                 thirds.append(third)
         for third in thirds:
             teams["Teams"].append(dict(Players=third, rank=3))
@@ -787,22 +788,22 @@ def activities_list(include_date: bool = False) -> Any:
             ],
             "Tong": [
                 "2022-07-15T12:00:00",
-                "2022-07-14T14:00:00",
+                "2022-07-15T14:00:00",
                 "2022-07-15T12:00:00",
             ],
             "Babyfoot": [
                 "2022-07-15T12:00:00",
-                "2022-07-14T14:00:00",
+                "2022-07-15T14:00:00",
                 "2022-07-15T11:55:00",
             ],
             "Flechette": [
                 "2022-07-15T12:00:00",
-                "2022-07-14T14:00:00",
+                "2022-07-15T14:00:00",
                 "2022-07-15T11:55:00",
             ],
             "Slackline": [
                 "2022-07-15T12:00:00",
-                "2022-07-14T14:00:00",
+                "2022-07-15T14:00:00",
                 "2022-07-15T11:55:00",
             ],
             "Waterpolo": [
@@ -877,7 +878,7 @@ def get_results(athlete: Any, data_dir: str) -> dict:
                 if current_year in sport_results:
                     for team in sport_results[current_year]["Teams"]:
                         logger.info(team)
-                        if athlete in team["Players"]:
+                        if re.search(f"\\b{athlete}\\b", team["Players"]):
                             rank = team["rank"]
                             results[f"nr{rank}"].append(sport)
     return results

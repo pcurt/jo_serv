@@ -21,6 +21,7 @@ from jo_serv.tools.tools import (
     increase_canva_size,
     update_global_bets_results,
     update_global_results,
+    generate_killer,
 )
 
 
@@ -170,6 +171,25 @@ def enlarge(data_dir: str, x: int = 0, y: int = 0) -> None:
     logger.info("Start increase_canva_size")
     increase_canva_size(data_dir=data_dir, tile_x=x, tile_y=y)
 
+@click.option(
+    "--data-dir",
+    help="Path to the data dir",
+    default="./",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
+)
+@main.command()
+def gen_killer(
+    data_dir: str,
+) -> None:
+    logger = logging.getLogger((__name__))
+    logger.info("Start generate_killer")
+    generate_killer(data_dir=data_dir)
 
 if __name__ == "__main__":
     sys.exit(main())

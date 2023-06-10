@@ -1425,3 +1425,18 @@ def toggle_lock_bets(sport: str, data_dir: str) -> None:
         data["states"].append("paris")
     with open(f"{data_dir}/teams/{sport}_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
+
+
+def generate_killer(data_dir: str) -> None:
+    data = dict()
+    data["started"] = True
+    data["arbitre"] = ["Antoine"]
+    data["participants"] = []
+    for player in players_list():
+        data["participants"].append({'name' : player, 'is_alive' : True, 'how_to_kill' : "", 'kills' : [], 'index' : 0})
+    random.shuffle(data["participants"])
+    for i, participant in enumerate(data["participants"]):
+        participant['index'] = i
+
+    with open(f"{data_dir}/teams/killer.json", "w") as file:
+        json.dump(data, file)

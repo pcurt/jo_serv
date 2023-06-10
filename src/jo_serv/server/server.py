@@ -1,6 +1,7 @@
 # Standard lib imports
 import datetime
 import hashlib
+from itertools import cycle
 import json
 import logging
 import os
@@ -594,4 +595,39 @@ def create_server(data_dir: str) -> Flask:
                 return resp
         return Response(response="Error on endpoint canva", status=404)
 
+
+    @app.route("/killer/<path:name>", methods=["GET", "POST"])
+    def killer(name :str) -> Response:
+        """Killer endpoints
+
+        Returns:
+            Response: The killer information
+        """
+        if request.method == "GET":
+            logger.info(f"Get on /killer from user {name}")
+            f = open(data_dir + "/teams/killer.json", "r")
+            data = json.load(f)
+            ret = {'is_alive' : False, 'how_to_kill' : "", "kills" : [], "target" :"" }
+
+            pool = cycle(data["participants"])
+            for player in data["participants"]:
+                if player["name"] == name:
+                    ret["kills"] = player["kills"]
+                    if player["is_alive"] == False:
+                        # Already killed
+                        logger.info("Player has been already killed")
+                        break
+                    else:
+                        ret["is_alive"] = True
+                        for next_player in pool:
+                            if next_player["is_alive"] is True:
+                                ret["target"] = next_player["name"]
+                                ret["how_to_kill"] = next_player["how_to_kill"]
+                                logger.info("Next killer has been found")
+                                break
+                            break
+                    
+            return Response(response=json.dumps(ret), status=200)
+
+        return Response(response="Error on killer", status=404)
     return app

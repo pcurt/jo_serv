@@ -337,17 +337,17 @@ def backup_canva(data_dir: str) -> None:
     logging.info(f"last up: {last_update}")
     last_backup = os.path.getctime(f"{data_dir}/teams/canva/bak")
     logging.info(f"last backup: {last_backup}")
+    now = int(time.time())
     if last_update > last_backup:
-        now = int(time.time())
         os.system(f"touch {data_dir}/teams/canva/bak/canva{now}.gz")  # nosec
         os.system(  # nosec
             f"tar cfz {data_dir}/teams/canva/bak/canva{now}.gz {data_dir}/teams/canva/*.json"
         )
-        with open(f"{data_dir}/events.json", "r") as file:
-            data = json.load(file)
-        date = datetime.datetime.fromtimestamp(now + 3 * 60).strftime("%Y-%m-%dT%H:%M:%S")
-        data["Events"].append(
-            dict(name=f"backup: {date}", date=date, callback="backup_canva", done=False)
-        )
-        with open(f"{data_dir}/events.json", "w") as file:
-            json.dump(data, file)
+    with open(f"{data_dir}/events.json", "r") as file:
+        data = json.load(file)
+    date = datetime.datetime.fromtimestamp(now + 3 * 60).strftime("%Y-%m-%dT%H:%M:%S")
+    data["Events"].append(
+        dict(name=f"backup: {date}", date=date, callback="backup_canva", done=False)
+    )
+    with open(f"{data_dir}/events.json", "w") as file:
+        json.dump(data, file)

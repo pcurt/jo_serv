@@ -40,10 +40,11 @@ from jo_serv.tools.tools import (
 CANVA_SIZE = 50
 MAX_NUMBER_CANVA = 500
 live_update_mutex = Lock()
+shifumi_presence = Lock()
 png_mutex = Lock()
 size_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
-
+PARTY_STATUS = "NOT_STARTED"
 
 def create_server(data_dir: str) -> Flask:
     """Create the server
@@ -607,27 +608,95 @@ def create_server(data_dir: str) -> Flask:
             logger.info(f"Get on /killer from user {name}")
             f = open(data_dir + "/teams/killer.json", "r")
             data = json.load(f)
-            ret = {'is_alive' : False, 'how_to_kill' : "", "kills" : [], "target" :"" }
+            ret = {'is_alive' : False, 'how_to_kill' : "", "kills" : [], "target" :"", "is_arbitre": False}
 
             pool = cycle(data["participants"])
-            for player in data["participants"]:
-                if player["name"] == name:
-                    ret["kills"] = player["kills"]
-                    if player["is_alive"] == False:
-                        # Already killed
-                        logger.info("Player has been already killed")
-                        break
-                    else:
-                        ret["is_alive"] = True
-                        for next_player in pool:
-                            if next_player["is_alive"] is True:
-                                ret["target"] = next_player["name"]
-                                ret["how_to_kill"] = next_player["how_to_kill"]
-                                logger.info("Next killer has been found")
-                                break
+            if not data["started"]:
+                pass
+            elif name in data["arbitre"]:
+                ret["is_arbitre"] = True
+            else:
+                for player in data["participants"]:
+                    if player["name"] == name:
+                        ret["kills"] = player["kills"]
+                        if player["is_alive"] == False:
+                            # Already killed
+                            logger.info("Player has been already killed")
                             break
+                        else:
+                            ret["is_alive"] = True
+                            player_found = False
+                            for next_player in pool:
+                                if player_found:
+                                    if next_player["is_alive"] is True:
+                                        ret["target"] = next_player["name"]
+                                        ret["how_to_kill"] = next_player["how_to_kill"]
+                                        logger.info("Next killer has been found")
+                                        break
+                                elif next_player["name"] == name:
+                                    player_found = True
                     
             return Response(response=json.dumps(ret), status=200)
+        elif request.method == "POST":
+            logger.info(f"Post on /killer from user {name}")
+            f = open(data_dir + "/teams/killer.json", "r")
+            data = json.load(f)
+            prev_player = data["participants"][-1]
+            for player in data["participants"]:
+                if player["name"] == name:
+                    prev_player["kills"].append(name)
+                    player["is_alive"] = False
+                    f = open(data_dir + "/teams/killer.json", "w")
+                    json.dump(data, f)
+                    break
+                prev_player = player
+            return Response(response="You died", status=200)
 
         return Response(response="Error on killer", status=404)
+    
+    @app.route("/shifumi", methods=["POST"])
+    def shifumi() -> Response:
+        """shifumi endpoints
+        Returns:
+            Response: The shifumi information
+        """
+  
+        if request.method == "POST":
+            
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            username = json_data.get("username")
+            sign = json_data.get("sign")
+            shifumi_presence.acquire()
+            try:
+                data = json.load(open(data_dir + "/teams/shifumi.json", "r"))
+                data[username] = {"time":time.time(), "sign":sign}
+                active_players = []
+                specs = []
+                for player, params in data.items():
+                    if time.time() - 2 < params.get("time"):
+                        if sign == "puit":
+                            specs.append(player)
+                        else:
+                            active_players.append(player)
+                print(sign)
+                print("Active players, specs:", active_players, specs)
+                json.dump(data, open(data_dir + "/teams/shifumi.json", "w"))
+            finally:
+                shifumi_presence.release()
+            # check party status
+            # if PARTY_STATUS == "NOT_STARTED":
+            #     # Initialise player list
+            #     # Add the new one
+            #     PARTY_STATUS = "RUNNING"
+            # elif PARTY_STATUS == "RUNNING":
+            #     pass
+                # Si timer > 10s passer le joueur en spectateur
+                # Si timer < 10s ajouter le signe
+            
+            # TODO tache qui gère le timer et le résultat des machines.
+            # La tache doit repasser PARTY_STATUS=NOT_STARTED en fin de partie (1 seul joueur présent)
+            return(make_response(dict(active_players=active_players, specs=specs)))
+        return Response(response="Error on shifumi", status=404)
+
     return app

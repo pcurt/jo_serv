@@ -9,7 +9,6 @@ import time
 from threading import Lock
 from typing import Any
 
-import mariadb  # type: ignore
 import requests  # type: ignore
 from flask import Flask, Response, make_response, request, send_file  # type: ignore
 
@@ -59,13 +58,6 @@ def create_server(data_dir: str) -> Flask:
     logger.info("Create the server")
     app = Flask(__name__)
 
-    try:
-        conn = mariadb.connect(user="root", database="JO")
-        cur = conn.cursor()
-        conn.autocommit = True
-    except mariadb.Error as e:
-        logger.error(f"Error connecting to MariaDB Platform: {e}")
-
     @app.route("/login", methods=["GET", "POST"])
     def login() -> Response:
         """Login page
@@ -77,25 +69,23 @@ def create_server(data_dir: str) -> Flask:
         json_data = json.loads(decode_data)
 
         rcv_user = json_data["username"]
-        rcv_password = hashlib.sha384(str.encode(json_data["password"])).hexdigest()
+        rcv_password = json_data["password"]
 
         logger.info(f" User {rcv_user} is trying to login")
 
-        try:
-            cur.execute("SELECT * from users")
-            for (id, user, pwd, autho, date) in cur:
-                logger.debug(f"{id} {user} {pwd} {autho} {date}")
-                if rcv_user == user:
-                    if rcv_password == pwd:
-                        logger.info(f"Receive correct password for {user}")
-                        return Response(response="Logged IN ", status=200)
-                    else:
-                        logger.info(f"Receive invalid password for {user}")
-        except mariadb.InterfaceError:
-            logger.info("Connection to mariadb has been lost, restart the module")
-            os._exit(0)
+        f = open(data_dir + "/login.json", "r")
+        data = json.load(f)
 
-        return Response(response="Wrong password ", status=403)
+        for user in data["users"]:
+            if rcv_user == user["username"]:
+                if user["password"] == rcv_password:
+                    logger.info("Log success")
+                    return Response(response="Logged IN ", status=200)
+                else:
+                    logger.info("Log failed")
+                    return Response(response="Wrong password ", status=403)
+
+        return Response(response="Wrong user ", status=403)
 
     @app.route("/Chatalere/<path:name>", methods=["GET", "POST"])
     def chat(name: str) -> Response:

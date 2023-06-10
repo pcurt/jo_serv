@@ -119,8 +119,8 @@ def canva_png_creator(data_dir: str) -> None:
             )
         if not no_modif:
             os.system(  # nosec
-                f"montage -mode concatenate -tile {tile_x}x{tile_y} {data_dir}/teams/canva/canvaout* \
-{data_dir}/teams/canva/tmp.png"
+                f"montage -mode concatenate -tile {tile_x}x{tile_y} \
+{data_dir}/teams/canva/canvaout* {data_dir}/teams/canva/tmp.png"
             )  # todo: make it scalable!
             shutil.copyfile(
                 f"{data_dir}/teams/canva/tmp.png",

@@ -15,6 +15,7 @@ from waitress import serve  # type: ignore
 # Local package imports
 from jo_serv.server.server import create_server
 from jo_serv.tools.canva import canva_png_creator
+from jo_serv.tools.shifumi import shifumi_process
 from jo_serv.tools.event import event_handler
 from jo_serv.tools.tools import (
     create_empty_bet_files,
@@ -82,7 +83,11 @@ def srv(
     event.start()
     canva = threading.Thread(target=canva_png_creator, args=(data_dir,))
     canva.start()
+    logger.info("Starting shifumi")
+    shifumi = threading.Thread(target=shifumi_process, args=(data_dir,))
+    shifumi.start()
 
+    logger.info("Shifumi started")
     app = create_server(data_dir=data_dir)
     serve(app, port=8000)
     logger.info("Server is stopped")

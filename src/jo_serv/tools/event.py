@@ -300,9 +300,7 @@ def raz_bets_results(data_dir: str) -> None:
 
 
 def restore_unplayed_matchs(data_dir: str) -> None:
-    os.system(f"cp -r {data_dir}/teams/save/*_series.json {data_dir}/teams/")  # nosec
-    os.system(f"cp -r {data_dir}/teams/save/*_playoff.json {data_dir}/teams/")  # nosec
-    os.system(f"cp -r {data_dir}/teams/save/*_poules.json {data_dir}/teams/")  # nosec
+    os.system(f"cp -r {data_dir}/teams/save/*.json {data_dir}/teams/")  # nosec
 
 
 def raz_medals_per_player(data_dir: str) -> None:

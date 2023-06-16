@@ -11,6 +11,7 @@ import shutil
 import string
 from math import ceil
 from typing import Any, Dict, Tuple
+from itertools import cycle
 
 import requests  # type: ignore
 
@@ -687,34 +688,80 @@ def log(sport: str, username: str, data: Any, data_dir: str) -> None:
 
 def players_list() -> list:
     return [
-        "Jo",
-        "Antoine",
-        "Thomas",
-        "Reminem",
-        "Shmav",
         "LaGuille",
-        "Ugo",
         "Chloe",
-        "Brice",
+        "Shmav",
+        "Thomas",
+        "Antoine",
+        "Quentin",
         "Max",
-        "Bryan",
-        "Keke",
-        "Alissone",
-        "Alice",
-        "Mathieu",
+        "Florent",
+        "Girex", 
         "Pierrick",
-        "Mimo",
-        "Gui",
-        "Chachav",
-        "Jess",
-        "Mams",
-        "Jason",
-        "Gazou",
-        "Babouche",
+        "Jo",
         "Clement",
+        "Keke",
+        "Hugo",
+        "Leo",
+        "Armand",
+        "Ugo",
+        "Brice",
+        "Mams",
+        "Gui",
+        "Beranger",
+        "Guillaume", 
+        "Chachav",
+        "Boulbi",
         "Bifteck",
+        "Emma",
+        "Lapinou", 
+        "Mathias",
+        "Bryan",
+        "Reminem", 
+        "Mimo",
+        "Jason",
+        "Jess"
     ]
 
+def killer_players() -> list:
+    return [
+        "LaGuille",
+        "Chloe",
+        "Shmav",
+        "Thomas",
+        "Antoine",
+        "Quentin",
+        "Max",
+        "Florent",
+        "Girex", 
+        "Pierrick",
+        "Jo",
+        "Clement",
+        "Keke",
+        "Hugo",
+        "Leo",
+        "Armand",
+        "Ugo",
+        "Gui",
+        "Beranger",
+        "Boulbi",
+        "Emma",
+        "Lapinou", 
+        "Bryan",
+        "Reminem", 
+        "Mimo",
+    ]
+
+def generate_account(data_dir : str, user : str) -> None:
+    with open(f"{data_dir}/login.json", "r") as file:
+        users = json.load(file)["users"]
+    if not any(user == known_user["username"] for known_user in users):
+        users.append(dict(username=user, password=''.join(random.choices(string.ascii_letters + string.digits, k=4))))
+        print(f"{user} added")
+    else:
+        print(f"{user} already has an account")
+    with open(f"{data_dir}/login.json", "w") as file:
+        json.dump(dict(users=users), file)
 
 def users_list() -> list:
     users = players_list()
@@ -725,136 +772,137 @@ def users_list() -> list:
 def activities_list(include_date: bool = False) -> Any:
     if include_date:
         return {
-            "Soirée d'ouverture!": ["2022-07-13T20:00:00", "2022-07-14T09:30:00"],
+            "Soirée d'ouverture!": ["2023-07-13T20:00:00", "2023-07-14T09:30:00"],
             "Trail": [
-                "2022-07-14T09:30:00",
-                "2022-07-14T11:00:00",
-                "2022-07-14T09:25:00",
-            ],
-            "Dodgeball": [
-                "2022-07-14T11:00:00",
-                "2022-07-14T13:00:00",
-                "2022-07-14T10:55:00",
-            ],
-            "PingPong": [
-                "2022-07-14T11:00:00",
-                "2022-07-14T13:00:00",
-                "2022-07-14T10:55:00",
-            ],
-            "Pizza": [
-                "2022-07-14T12:00:00",
-                "2022-07-14T15:00:00",
-                "2022-07-14T11:55:00",
+                "2023-07-14T09:30:00",
+                "2023-07-14T11:00:00",
+                "2023-07-14T09:25:00",
             ],
             "Volley": [
-                "2022-07-14T14:00:00",
-                "2022-07-14T17:00:00",
-                "2022-07-14T13:55:00",
+                "2023-07-14T11:00:00",
+                "2023-07-14T13:00:00",
+                "2023-07-14T10:55:00",
             ],
-            "SpikeBall": [
-                "2022-07-14T14:00:00",
-                "2022-07-14T17:00:00",
-                "2022-07-14T13:55:00",
-            ],
-            "Blindtest": [
-                "2022-07-14T14:00:00",
-                "2022-07-14T17:00:00",
-                "2022-07-14T13:55:00",
-            ],
-            "Krossfit": [
-                "2022-07-14T17:00:00",
-                "2022-07-14T18:00:00",
-                "2022-07-14T16:55:00",
-            ],
-            "Corde": [
-                "2022-07-14T18:00:00",
-                "2022-07-14T19:00:00",
-                "2022-07-14T17:55:00",
-            ],
-            "Orientation": [
-                "2022-07-14T19:00:00",
-                "2022-07-14T20:00:00",
-                "2022-07-14T18:55:00",
-            ],
-            "Beerpong": [
-                "2022-07-15T10:00:00",
-                "2022-07-15T19:00:00",
-                "2022-07-15T09:55:00",
-            ],
-            "Larmina": [
-                "2022-07-15T10:00:00",
-                "2022-07-15T12:00:00",
-                "2022-07-15T09:55:00",
-            ],
-            "Tong": [
-                "2022-07-15T12:00:00",
-                "2022-07-15T14:00:00",
-                "2022-07-15T12:00:00",
-            ],
-            "Babyfoot": [
-                "2022-07-15T12:00:00",
-                "2022-07-15T14:00:00",
-                "2022-07-15T11:55:00",
-            ],
-            "Flechette": [
-                "2022-07-15T12:00:00",
-                "2022-07-15T14:00:00",
-                "2022-07-15T11:55:00",
-            ],
-            "Slackline": [
-                "2022-07-15T12:00:00",
-                "2022-07-15T14:00:00",
-                "2022-07-15T11:55:00",
+            "Pizza": [
+                "2023-07-14T13:00:00",
+                "2023-07-14T15:00:00",
+                "2023-07-14T12:55:00",
             ],
             "Waterpolo": [
-                "2022-07-15T14:00:00",
-                "2022-07-15T15:00:00",
-                "2022-07-15T13:55:00",
+                "2023-07-14T14:00:00",
+                "2023-07-14T15:00:00",
+                "2023-07-14T13:55:00",
+            ],
+            "SpikeBall": [
+                "2023-07-14T15:00:00",
+                "2023-07-14T18:00:00",
+                "2023-07-14T14:55:00",
+            ],
+            "Blindtest": [
+                "2023-07-14T15:00:00",
+                "2023-07-14T18:00:00",
+                "2023-07-14T14:55:00",
+            ],
+            "Orientation": [
+                "2023-07-14T18:00:00",
+                "2023-07-14T20:00:00",
+                "2023-07-14T19:55:00",
+            ],
+            "Beerpong": [
+                "2023-07-15T10:00:00",
+                "2023-07-15T19:00:00",
+                "2023-07-15T09:55:00",
+            ],
+            "Crepes": [
+                "2023-07-15T13:00:00",
+                "2023-07-15T14:00:00",
+                "2023-07-15T12:55:00",
+            ],
+            "Flechette": [
+                "2023-07-15T14:00:00",
+                "2023-07-15T16:00:00",
+                "2023-07-15T13:55:00",
+            ],
+            "Tong": [
+                "2023-07-15T14:00:00",
+                "2023-07-15T16:00:00",
+                "2023-07-15T13:55:00",
+            ],
+            "Babyfoot": [
+                "2023-07-15T14:00:00",
+                "2023-07-15T16:00:00",
+                "2023-07-15T13:55:00",
+            ],
+            "Slackline": [
+                "2023-07-15T14:00:00",
+                "2023-07-15T16:00:00",
+                "2023-07-15T13:55:00",
+            ],
+            "Larmina": [
+                "2023-07-15T16:00:00",
+                "2023-07-15T18:00:00",
+                "2023-07-15T15:55:00",
             ],
             "Ventriglisse": [
-                "2022-07-15T18:00:00",
-                "2022-07-15T19:00:00",
-                "2022-07-15T17:55:00",
+                "2023-07-15T18:00:00",
+                "2023-07-15T19:00:00",
+                "2023-07-15T17:55:00",
             ],
             "100mRicard": [
-                "2022-07-15T21:00:00",
-                "2022-07-16T04:00:00",
-                "2022-07-15T20:55:00",
+                "2023-07-15T23:00:00",
+                "2023-07-16T04:00:00",
+                "2023-07-15T22:55:00",
             ],
+            "Rangement": ["2023-07-16T11:00:00", "2023-07-16T14:00:00"],
             "Petanque": [
-                "2022-07-16T11:00:00",
-                "2022-07-16T13:00:00",
-                "2022-07-16T10:55:00",
+                "2023-07-16T14:00:00",
+                "2023-07-16T15:30:00",
+                "2023-07-16T13:55:00",
             ],
-            "Rangement": ["2022-07-16T14:00:00", "2022-07-16T15:30:00"],
-            "Remise des prix": ["2022-07-16T15:30:00", "2022-07-16T17:30:00"],
+            "Remise des prix": ["2023-07-16T15:30:00", "2023-07-16T17:30:00"],
         }
     return [
-        "Soirée d'ouverture!",
-        "Trail",
-        "Dodgeball",
-        "PingPong",
-        "Pizza",
-        "Volley",
-        "SpikeBall",
-        "Krossfit",
-        "Corde",
-        "Orientation",
-        "Beerpong",
-        "Waterpolo",
-        "Larmina",
-        "Blindtest",
-        "Tong",
-        "Babyfoot",
-        "Flechette",
-        "Slackline",
-        "Ventriglisse",
-        "100mRicard",
-        "Petanque",
-        "Rangement",
-        "Remise des prix",
+            "Soirée d'ouverture!",
+            "Trail",
+            "Volley",
+            "Pizza",
+            "Waterpolo",
+            "SpikeBall",
+            "Blindtest",
+            "Orientation",
+            "Beerpong",
+            "Crepes",
+            "Flechette",
+            "Tong",
+            "Babyfoot",
+            "Slackline",
+            "Larmina",
+            "Ventriglisse",
+            "100mRicard",
+            "Rangement",
+            "Petanque",
+            "Remise des prix",
     ]
 
+def sports_list() -> list:
+    return [
+            "Trail",
+            "Volley",
+            "Pizza",
+            "Waterpolo",
+            "SpikeBall",
+            "Blindtest",
+            "Orientation",
+            "Beerpong",
+            "Flechette",
+            "Tong",
+            "Babyfoot",
+            "Slackline",
+            "Larmina",
+            "Ventriglisse",
+            "100mRicard",
+            "Petanque",
+    ]
 
 def sort_list(old_list: list) -> list:
     new_list: list = []
@@ -880,7 +928,8 @@ def get_results(athlete: Any, data_dir: str) -> dict:
                         logger.info(team)
                         if re.search(f"\\b{athlete}\\b", team["Players"]):
                             rank = team["rank"]
-                            results[f"nr{rank}"].append(sport)
+                            if rank < 4:
+                                results[f"nr{rank}"].append(sport)
     return results
 
 
@@ -893,33 +942,34 @@ def get_bet_score(player: Any, data_dir: str) -> dict:
         if "_summary.json" in filename:
             sport = filename.replace("_summary.json", "")
             logger.info(f"Bet result for {sport}")
-            with open(f"{data_dir}/results/sports/{filename}", "r") as file:
-                current_year = str(datetime.date.today().year)
-                sport_results = json.load(file)
-                logger.debug(f"All sport result : {sport_results}")
-                if current_year in sport_results:
-                    for team in sport_results[current_year]["Teams"]:
-                        logger.info(f"Team is {team}")
+            if os.path.exists(f"{data_dir}/bets/{sport}.json"):
+                with open(f"{data_dir}/results/sports/{filename}", "r") as file:
+                    current_year = str(datetime.date.today().year)
+                    sport_results = json.load(file)
+                    logger.debug(f"All sport result : {sport_results}")
+                    if current_year in sport_results:
+                        for team in sport_results[current_year]["Teams"]:
+                            logger.info(f"Team is {team}")
 
-                        if team["rank"] == 1 or team["rank"] == 2 or team["rank"] == 3:
-                            logger.debug(
-                                f"Reading file  : {data_dir}/bets/{sport}.json"
-                            )
-                            with open(f"{data_dir}/bets/{sport}.json") as f:
-                                data = json.load(f).get("Teams")
-                                for bet_team in data:
-                                    if bet_team["Players"] == team["Players"]:
-                                        if player in bet_team["Votes"]:
-                                            if team["rank"] == 1:
-                                                points = 9
-                                            elif team["rank"] == 2:
-                                                points = 5
-                                            else:
-                                                points = 3
-                                            score = score + points
-                                            logger.info(
-                                                f"{player} has voted for wining team in {sport}"
-                                            )
+                            if team["rank"] == 1 or team["rank"] == 2 or team["rank"] == 3:
+                                logger.debug(
+                                    f"Reading file  : {data_dir}/bets/{sport}.json"
+                                )
+                                with open(f"{data_dir}/bets/{sport}.json") as f:
+                                    data = json.load(f).get("Teams")
+                                    for bet_team in data:
+                                        if bet_team["Players"] == team["Players"]:
+                                            if player in bet_team["Votes"]:
+                                                if team["rank"] == 1:
+                                                    points = 9
+                                                elif team["rank"] == 2:
+                                                    points = 5
+                                                else:
+                                                    points = 3
+                                                score = score + points
+                                                logger.info(
+                                                    f"{player} has voted for wining team in {sport}"
+                                                )
     bet_result = dict(player=player, score=score)
     return bet_result
 
@@ -1430,13 +1480,150 @@ def toggle_lock_bets(sport: str, data_dir: str) -> None:
 def generate_killer(data_dir: str) -> None:
     data = dict()
     data["started"] = True
-    data["arbitre"] = ["Antoine"]
+    data["over"] = False
+    data["arbitre"] = ["Mathias", "Bifteck"]
     data["participants"] = []
-    for player in players_list():
-        data["participants"].append({'name' : player, 'is_alive' : True, 'how_to_kill' : "", 'kills' : [], 'index' : 0})
+    for player in killer_players():
+        data["participants"].append({'name' : player, 'is_alive' : True, 'how_to_kill' : "", 'kills' : [], 'index' : 0, 'rank' : 0})
+
+    with open(f"{data_dir}/killer/killer_missions.json", "r") as missions_file:
+        missions_data = json.load(missions_file)
+    if len(missions_data) < len(data["participants"]):
+        logging.error(f"Can't start Killer: missing {len(data['participants']) - len(missions_data['available'])} missions")
+        return False
+    
+    missions = missions_data
+    random.shuffle(missions)
     random.shuffle(data["participants"])
     for i, participant in enumerate(data["participants"]):
         participant['index'] = i
+        mission = missions.pop()["title"]
+        participant["how_to_kill"] = mission
+        missions_data["assigned"].append(dict(title=mission, to=participant["name"]))
+    
+    with open(f"{data_dir}/killer/killer_missions.json", "w") as missions_file:
+        json.dump(missions_data, missions_file)
 
-    with open(f"{data_dir}/teams/killer.json", "w") as file:
+    with open(f"{data_dir}/killer/killer.json", "w") as file:
         json.dump(data, file)
+    return True
+
+
+def kill_player(data_dir: str, name: str, give_credit = True) -> None:
+    f = open(data_dir + "/killer/killer.json", "r")
+    data = json.load(f)
+    data["participants"] = sorted(data["participants"], key=lambda d: d["index"])
+    rank = 0
+    for player in data["participants"]:
+        if player["is_alive"]:
+            rank += 1
+    player_found = False
+    pool = cycle(reversed(data["participants"]))
+    for player in pool:
+        if player["name"] == name:
+            player_found = True
+            player["is_alive"] = False
+            player["rank"] = rank
+            player["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
+            victim = {"name" : name, "mission": player["how_to_kill"], "date": player["death"]}
+        if player_found and player["is_alive"]:
+            if give_credit:
+                player["kills"].append(victim)
+                # send_notif(player["name"], "Nouvelle victime", f'Bien joué! Tu as tué {victim["name"]}!', data_dir)
+            if rank == 2:
+                # send_notif(player["name"], "Fin du Killer", f'Bien joué! Tu es le dernier en vie.', data_dir)
+                player["rank"] = 1
+                data["over"] = True
+            with open(f"{data_dir}/killer/killer.json", "w") as f:
+                json.dump(data, f)
+            logging.info(data)
+            if data["over"]:
+                generate_killer_results(data_dir)
+                update_global_results(data_dir)
+            return True
+    return False
+
+
+def generate_killer_results(data_dir: str) -> None:
+    with open(f"{data_dir}/killer/killer.json", "r") as file:
+        data = json.load(file)
+        players = data["participants"]
+    while not any(player["rank"] == 2 for player in players):
+        for player in players:
+            player["rank"] =-1
+    for player in players:
+        if player["rank"] < 0:
+            player["rank"] = 1
+    with open(f"{data_dir}/killer/killer.json", "w") as file:
+        json.dump(data, file)
+
+    teams: dict = dict(Teams=[])
+    for team in players:
+        if team["rank"] < 4:
+            teams["Teams"].append(team)
+    for player in teams["Teams"]:
+        player["Players"] = player["name"]
+        del player["name"]
+    add_new_results("Killer-Survie", teams, data_dir)
+
+    with open(f"{data_dir}/killer/killer.json", "r") as file:
+        data = json.load(file)
+        players = data["participants"]
+    for player in players:
+        player["nr_of_kills"] = len(player["kills"])
+    players = sorted(players, key=lambda i: i["nr_of_kills"])
+    players.reverse()
+    rank = 1
+    players[0]["kills_rank"] = 1
+    kills = players[0]["nr_of_kills"]
+    teams: dict = dict(Teams=[])
+    for player in players:
+        if player["nr_of_kills"] != kills:
+            rank += 1
+            if rank == 4:
+                break
+            kills = player["nr_of_kills"]
+        player["kills_rank"] = rank
+        teams["Teams"].append(player)
+    for player in teams["Teams"]:
+        player["Players"] = player["name"]
+        del player["name"]
+
+    add_new_results("Killer-Kills", teams, data_dir)
+
+
+def get_killer_player_info(name: str, participants: list) -> Any:
+    participants = sorted(participants, key=lambda d: d["index"])
+    pool = cycle(participants)
+    info = dict(kills=[], is_alive=False, target="", how_to_kill="")
+    for player in participants:
+        if player["name"] == name:
+            info["kills"] = player["kills"]
+            if player["is_alive"] == False:
+                # Already killed
+                info["is_alive"] = False
+                logging.info("Player has been already killed")
+                break
+            else:
+                info["is_alive"] = True
+                player_found = False
+                for next_player in pool:
+                    if player_found:
+                        if next_player["is_alive"] is True:
+                            info["target"] = next_player["name"]
+                            info["how_to_kill"] = next_player["how_to_kill"]
+                            logging.info("Next killer has been found")
+                            break
+                    elif next_player["name"] == name:
+                        player_found = True
+    return info
+
+
+def random_kills():
+    with open("src/data_serv/killer/killer.json", "r") as file:
+        players = json.load(file)["participants"]
+    random.shuffle(players)
+    while len(players) > 1:
+        name = players.pop()["name"]
+        kill_player("src/data_serv", name)
+        print(f"killed {name}")

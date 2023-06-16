@@ -35,6 +35,8 @@ from jo_serv.tools.tools import (
     update_playoff_match,
     update_poules_match,
     user_is_authorized,
+    kill_player,
+    get_killer_player_info,
 )
 
 CANVA_SIZE = 50
@@ -597,6 +599,17 @@ def create_server(data_dir: str) -> Flask:
                 return resp
         return Response(response="Error on endpoint canva", status=404)
 
+    @app.route("/photo/<path:name>", methods=["GET"])
+    def photo(name :str) -> Any:
+        logger.info(f"Get on : /photo for {name}")
+        try:
+            resp = send_file(
+                f"{data_dir}/photos/{name}.jpeg", mimetype="image/jpeg"
+            )
+            return resp
+        except:
+            return Response(response="Can't find requested photo", status=404)
+
 
     @app.route("/killer/<path:name>", methods=["GET", "POST"])
     def killer(name :str) -> Response:
@@ -607,68 +620,48 @@ def create_server(data_dir: str) -> Flask:
         """
         if request.method == "GET":
             logger.info(f"Get on /killer from user {name}")
-            f = open(data_dir + "/teams/killer.json", "r")
-            data = json.load(f)
-            ret = {'started' : False, 'is_alive' : True, 'how_to_kill' : "", "kills" : [], "target" :"", "is_arbitre": False}
-
-            pool = cycle(data["participants"])
-            if not data["started"]:
-                pass
-            elif name in data["arbitre"]:
-                ret["started"] = True
-                ret["is_arbitre"] = True
+            with open(data_dir + "/killer/killer.json", "r") as f:
+                data = json.load(f)
+            ret = {'started' : data["started"], 'is_alive' : True, 'how_to_kill' : "", "kills" : [], "target" : "", "is_arbitre": False, "over" : data["over"]}
+            if name not in data["arbitre"]:
+                if not data["started"]:
+                    pass
+                else:
+                    if not data["over"]:
+                        participants = data["participants"]
+                        info = get_killer_player_info(name, participants)
+                        ret["how_to_kill"] = info["how_to_kill"]
+                        ret["is_alive"] = info["is_alive"]
+                        ret["kills"] = info["kills"]
+                        ret["target"] = info["target"]
             else:
-                ret["started"] = True
-                for player in data["participants"]:
-                    if player["name"] == name:
-                        ret["kills"] = player["kills"]
-                        if player["is_alive"] == False:
-                            # Already killed
-                            ret["is_alive"] = False
-                            logger.info("Player has been already killed")
-                            break
-                        else:
-                            ret["is_alive"] = True
-                            player_found = False
-                            for next_player in pool:
-                                if player_found:
-                                    if next_player["is_alive"] is True:
-                                        ret["target"] = next_player["name"]
-                                        ret["how_to_kill"] = next_player["how_to_kill"]
-                                        logger.info("Next killer has been found")
-                                        break
-                                elif next_player["name"] == name:
-                                    player_found = True
+                ret["is_arbitre"] = True
+                if data["started"]:
+                    ret["participants"] = data["participants"]
+                with open(data_dir + "/killer/killer_missions.json", "r") as f:
+                    ret["missions"] = json.load(f)
                     
             return Response(response=json.dumps(ret), status=200)
         elif request.method == "POST":
             logger.info(f"Post on /killer from user {name}")
-            f = open(data_dir + "/teams/killer.json", "r")
-            data = json.load(f)
+            with open(f"{data_dir}/killer/killer.json", "r") as file:
+                data = json.load(file)
             if name not in data["arbitre"]:
-                prev_player = data["participants"][-1]
-                for player in data["participants"]:
-                    if player["name"] == name:
-                        prev_player["kills"].append(name)
-                        player["is_alive"] = False
-                        f = open(data_dir + "/teams/killer.json", "w")
-                        json.dump(data, f)
-                        break
-                    prev_player = player
-                return Response(response="You died", status=200)
+                if kill_player(data_dir, name):
+                    return Response(response="You died", status=200)
             else:
                 decode_data = request.data.decode("utf-8")
                 json_data = json.loads(decode_data)
                 logging.info(json_data)
                 if json_data["data"] == "missions":
-                    with open(f"{data_dir}/teams/killer_missions.json", "r") as file:
+                    with open(f"{data_dir}/killer/killer_missions.json", "r") as file:
                         missions = json.load(file)
                         logging.info(missions)
-                    missions["available"] = []
+                    missions = []
                     for mission in json_data["missions"]:
-                        if mission:
-                            missions["available"].append(mission)
-                    with open(f"{data_dir}/teams/killer_missions.json", "w") as file:
+                        if mission["title"]:
+                            missions.append(mission)
+                    with open(f"{data_dir}/killer/killer_missions.json", "w") as file:
                         json.dump(missions, file)
                 return Response(response="Missions updated", status=200)    
 
@@ -688,39 +681,34 @@ def create_server(data_dir: str) -> Flask:
             json_data = json.loads(decode_data)
             username = json_data.get("username")
             sign = json_data.get("sign")
-            shifumi_presence.acquire()
-            try:
-                data = json.load(open(data_dir + "/teams/shifumi.json", "r"))
-                data[username] = {"time":time.time(), "sign":sign}
-                active_players = []
-                specs = []
-                for player, params in data.items():
-                    if time.time() - 2 < params.get("time"):
-                        if params.get("sign") == "puit":
-                            specs.append(player)
-                        else:
-                            active_players.append(player)
-                json.dump(data, open(data_dir + "/teams/shifumi.json", "w"))
-            finally:
-                shifumi_presence.release()
+            mobile_party_id = json_data.get("party_id")
             shifumi_status.acquire()
             status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
             shifumi_status.release()
             voting_in = int(status.get("votingtick")) - time.time() 
             last_winner = status.get("lastwinner")
-            # check party status
-            # if PARTY_STATUS == "NOT_STARTED":
-            #     # Initialise player list
-            #     # Add the new one
-            #     PARTY_STATUS = "RUNNING"
-            # elif PARTY_STATUS == "RUNNING":
-            #     pass
-                # Si timer > 10s passer le joueur en spectateur
-                # Si timer < 10s ajouter le signe
-            
-            # TODO tache qui gère le timer et le résultat des machines.
-            # La tache doit repasser PARTY_STATUS=NOT_STARTED en fin de partie (1 seul joueur présent)
-            return(make_response(dict(active_players=active_players, specs=specs, voting_in=voting_in, last_winner=last_winner)))
+            active_players = status.get("active_players")
+            if active_players is None:
+                active_players = []
+            party_id = status.get("party_id")
+            if party_id != mobile_party_id:
+                sign = "puit"
+            shifumi_presence.acquire()
+            try:
+                data = json.load(open(data_dir + "/teams/shifumi.json", "r"))
+
+                data[username] = {"time":time.time(), "sign":sign}
+                specs = []
+                for player, params in data.items():
+                    if time.time() - 2 < params.get("time"):
+                        if params.get("sign") == "puit":
+                            specs.append(player)
+                json.dump(data, open(data_dir + "/teams/shifumi.json", "w"))
+            finally:
+                shifumi_presence.release()
+
+
+            return(make_response(dict(active_players=active_players, specs=specs, voting_in=voting_in, last_winner=last_winner, party_id=party_id)))
         return Response(response="Error on shifumi", status=404)
 
     return app

@@ -623,6 +623,7 @@ def add_new_results(sport: str, results: Any, data_dir: str) -> None:
     with open(f"{data_dir}/results/sports/{file_name}", "w") as file:
         json.dump(teams, file, ensure_ascii=False)
     update_global_bets_results(data_dir)
+    update_global_results(data_dir)
 
 
 def generate_pizza_results(data_dir: str) -> None:
@@ -1483,13 +1484,14 @@ def generate_killer(data_dir: str) -> None:
     data["over"] = False
     data["arbitre"] = ["Mathias", "Bifteck"]
     data["participants"] = []
+    data["start_date"] = datetime.datetime.now().timestamp()
     for player in killer_players():
         data["participants"].append({'name' : player, 'is_alive' : True, 'how_to_kill' : "", 'kills' : [], 'index' : 0, 'rank' : 0})
 
     with open(f"{data_dir}/killer/killer_missions.json", "r") as missions_file:
         missions_data = json.load(missions_file)
     if len(missions_data) < len(data["participants"]):
-        logging.error(f"Can't start Killer: missing {len(data['participants']) - len(missions_data['available'])} missions")
+        logging.error(f"Can't start Killer: missing {len(data['participants']) - len(missions_data)} missions")
         return False
     
     missions = missions_data
@@ -1499,7 +1501,6 @@ def generate_killer(data_dir: str) -> None:
         participant['index'] = i
         mission = missions.pop()["title"]
         participant["how_to_kill"] = mission
-        missions_data["assigned"].append(dict(title=mission, to=participant["name"]))
     
     with open(f"{data_dir}/killer/killer_missions.json", "w") as missions_file:
         json.dump(missions_data, missions_file)
@@ -1525,6 +1526,7 @@ def kill_player(data_dir: str, name: str, give_credit = True) -> None:
             player["is_alive"] = False
             player["rank"] = rank
             player["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
+            player["lifetime"] = (datetime.datetime.fromtimestamp(datetime.datetime.now().timestamp() - data["start_date"])).strftime("%dj %Hh %Mmin %Ss")
             victim = {"name" : name, "mission": player["how_to_kill"], "date": player["death"]}
         if player_found and player["is_alive"]:
             if give_credit:
@@ -1534,9 +1536,9 @@ def kill_player(data_dir: str, name: str, give_credit = True) -> None:
                 # send_notif(player["name"], "Fin du Killer", f'Bien joué! Tu es le dernier en vie.', data_dir)
                 player["rank"] = 1
                 data["over"] = True
+            # send_notif("all", "Nouvelle victime", "J'ai vu, je sais qui c'est mais je dirai rien", data_dir)
             with open(f"{data_dir}/killer/killer.json", "w") as f:
                 json.dump(data, f)
-            logging.info(data)
             if data["over"]:
                 generate_killer_results(data_dir)
                 update_global_results(data_dir)
@@ -1548,14 +1550,16 @@ def generate_killer_results(data_dir: str) -> None:
     with open(f"{data_dir}/killer/killer.json", "r") as file:
         data = json.load(file)
         players = data["participants"]
-    while not any(player["rank"] == 2 for player in players):
-        for player in players:
-            player["rank"] =-1
+    if not (all(player["rank"] == 0 for player in players)):
+        while not any(player["rank"] == 2 for player in players):
+            for player in players:
+                player["rank"] -= 1
     for player in players:
-        if player["rank"] < 0:
+        if player["rank"] <= 0:
             player["rank"] = 1
     with open(f"{data_dir}/killer/killer.json", "w") as file:
         json.dump(data, file)
+    logging.info("assigned ranks")
 
     teams: dict = dict(Teams=[])
     for team in players:
@@ -1585,8 +1589,11 @@ def generate_killer_results(data_dir: str) -> None:
             kills = player["nr_of_kills"]
         player["kills_rank"] = rank
         teams["Teams"].append(player)
+    with open(f"{data_dir}/killer/killer.json", "w") as file:
+        json.dump(data, file)
     for player in teams["Teams"]:
         player["Players"] = player["name"]
+        player["rank"] = player["kills_rank"]
         del player["name"]
 
     add_new_results("Killer-Kills", teams, data_dir)
@@ -1602,6 +1609,7 @@ def get_killer_player_info(name: str, participants: list) -> Any:
             if player["is_alive"] == False:
                 # Already killed
                 info["is_alive"] = False
+                info["lifetime"] = player["lifetime"]
                 logging.info("Player has been already killed")
                 break
             else:

@@ -10,7 +10,6 @@ from typing import Any
 from jo_serv.tools.tools import (
     activities_list,
     calculate_rank_clicker,
-    generate_pizza_results,
     players_list,
     send_notif,
 )
@@ -193,7 +192,6 @@ def set_end_pizza(data_dir: str) -> None:
     with open(f"{data_dir}/teams/Pizza_status.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
 
-    generate_pizza_results(data_dir)
     send_notif(
         "all",
         "Vote Pizza terminé",

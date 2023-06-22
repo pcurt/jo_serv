@@ -626,16 +626,16 @@ def add_new_results(sport: str, results: Any, data_dir: str) -> None:
     update_global_results(data_dir)
 
 
-def generate_pizza_results(data_dir: str) -> None:
+def generate_vote_results(data_dir: str, sportname: str) -> None:
     logger = logging.getLogger(__name__)
-    logger.info("generate_pizza_results")
+    logger.info("generate_vote_results")
     players_score: list = []
-    with open(f"{data_dir}/teams/Pizza_series.json") as f:
+    with open(f"{data_dir}/teams/{sportname}_votes.json") as f:
         matches_data = json.load(f)
-        serie = matches_data["Series"][0]
+        serie = matches_data
         logger.info(f"Raw data is{serie}")
         for player in serie["Teams"]:
-            score = len(player["score"])
+            score = len(player["votes"])
             players_score.append(dict(Players=player["Players"], score=score))
     players_score = sorted(players_score, key=lambda i: i["score"])  # type: ignore
     players_score.reverse()
@@ -652,12 +652,14 @@ def generate_pizza_results(data_dir: str) -> None:
             player["rank"] = rank
 
     year = str(datetime.date.today().year)
-    with open(f"{data_dir}/results/sports/Pizza_summary.json", "r") as file:
-        data = json.load(file)
+    data = dict()
+    if os.path.exists("{data_dir}/results/sports/{sportname}_votes_summary.json"):
+        with open(f"{data_dir}/results/sports/{sportname}_votes_summary.json", "r") as file:
+            data = json.load(file)
     data[year] = dict(Teams=players_score)
-    with open(f"{data_dir}/results/sports/Pizza_summary.json", "w") as file:
+    with open(f"{data_dir}/results/sports/{sportname}_votes_summary.json", "w") as file:
         json.dump(data, file, ensure_ascii=False)
-    logger.info("generate_pizza_results end")
+    logger.info("generate_votes_results end")
 
 
 def serie_is_over(serie: dict) -> bool:
@@ -1253,41 +1255,23 @@ def update_bet_file(data_dir: str, sport: str, username: str, bets: str) -> None
         json.dump(dict(Teams=data), f, ensure_ascii=False)
 
 
-def update_pizza_vote(data_dir: str, username: str, vote: str) -> None:
+def update_vote(data_dir: str, username: str, vote: str, sportname: str) -> None:
     logger = logging.getLogger(__name__)
-    logger.info("update_pizza_vote")
+    logger.info("update_vote")
     # TODO Check if event is locked or not
-    logger.info(f"Reading file  : {data_dir}/teams/Pizza_series.json")
-    with open(f"{data_dir}/teams/Pizza_series.json") as f:
+    logger.info(f"Reading file  : {data_dir}/teams/{sportname}_votes.json")
+    with open(f"{data_dir}/teams/{sportname}_votes.json") as f:
         matches_data = json.load(f)
-        serie = matches_data["Series"][0]
-        data = serie["Teams"]
-        logger.info(f"Raw data is{data}")
-        for idx, team in enumerate(data):
-            logger.info(f"Iteartion {idx}, {team}")
-            logger.info(data[idx]["score"])
-            logger.info(team["Players"])
-            logger.info(vote)
-            logger.info(username)
-            # Delete other enries for this user
-            try:
-                data[idx]["score"].remove(username)
-            except ValueError:
-                pass
-            if team["Players"] == vote:
-                logger.info(f"Add bet for {username, vote}")
-                data[idx]["score"].append(username)
-            # Update totalvotes
-            data[idx]["TotalVotes"] = len(data[idx]["score"])
-
-        matches_data["Series"][0]["Teams"] = data
-        logger.info(f"matches_data {matches_data}")
-        with open(f"{data_dir}/teams/Pizza_series.json", "w") as f:
-            json.dump(matches_data, f, ensure_ascii=False, indent=4)
-
-
-def update_pizza_result(data_dir: str, username: str, vote: str) -> None:
-    pass
+    data = matches_data["Teams"]
+    logger.info(f"Raw data is{data}")
+    for player in data:
+        if username in player["votes"]:
+            player["votes"].remove(username)
+        if vote == player["Players"]:
+            player["votes"].append(username)
+    print(f"matches_data {matches_data}")
+    with open(f"{data_dir}/teams/{sportname}_votes.json", "w") as f:
+        json.dump(matches_data, f, ensure_ascii=False, indent=4)
 
 
 def adapt_bet_file(data_dir: str, sport: str) -> None:
@@ -1510,7 +1494,7 @@ def generate_killer(data_dir: str) -> None:
     return True
 
 
-def kill_player(data_dir: str, name: str, give_credit = True) -> None:
+def kill_player(data_dir: str, name: str, counter_kill = False, give_credit = True) -> None:
     f = open(data_dir + "/killer/killer.json", "r")
     data = json.load(f)
     data["participants"] = sorted(data["participants"], key=lambda d: d["index"])
@@ -1519,18 +1503,34 @@ def kill_player(data_dir: str, name: str, give_credit = True) -> None:
         if player["is_alive"]:
             rank += 1
     player_found = False
-    pool = cycle(reversed(data["participants"]))
+    if counter_kill:
+        pool = cycle(data["participants"])
+    else:
+        pool = cycle(reversed(data["participants"]))
     for player in pool:
         if player["name"] == name:
             player_found = True
             player["is_alive"] = False
             player["rank"] = rank
             player["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
-            player["lifetime"] = (datetime.datetime.fromtimestamp(datetime.datetime.now().timestamp() - data["start_date"])).strftime("%dj %Hh %Mmin %Ss")
+            time_alive = datetime.datetime.now().timestamp() - data["start_date"]
+            days = int(time_alive / 86400)
+            hours = int(time_alive % 86400/ 3600)
+            minutes = int(time_alive % 3600 / 60)
+            seconds = int(time_alive % 60)
+            player["lifetime"] = f"{days}j {hours}h {minutes}min {seconds}s"
             victim = {"name" : name, "mission": player["how_to_kill"], "date": player["death"]}
+            if counter_kill:
+                mission = victim["mission"]
+                victim["mission"] = "Contre kill"
+                dead = player
         if player_found and player["is_alive"]:
             if give_credit:
+                victim["mission"] += f': {player["how_to_kill"]}'
+                dead["how_to_kill"] = victim["mission"]
                 player["kills"].append(victim)
+                if counter_kill:
+                    player["how_to_kill"] = mission
                 # send_notif(player["name"], "Nouvelle victime", f'Bien joué! Tu as tué {victim["name"]}!', data_dir)
             if rank == 2:
                 # send_notif(player["name"], "Fin du Killer", f'Bien joué! Tu es le dernier en vie.', data_dir)

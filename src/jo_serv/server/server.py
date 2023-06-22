@@ -1,4 +1,5 @@
 # Standard lib imports
+import random
 import datetime
 import hashlib
 from itertools import cycle
@@ -17,7 +18,7 @@ from jo_serv.tools.tools import (
     adapt_bet_file,
     generate_can_be_added_list,
     generate_event_list,
-    generate_pizza_results,
+    generate_vote_results,
     generate_pools,
     generate_series,
     generate_table,
@@ -31,7 +32,7 @@ from jo_serv.tools.tools import (
     update_bet_file,
     update_global_results,
     update_list,
-    update_pizza_vote,
+    update_vote,
     update_playoff_match,
     update_poules_match,
     user_is_authorized,
@@ -310,8 +311,8 @@ def create_server(data_dir: str) -> Flask:
         # log(sport, username, data) # FIXME to delete ?
         return Response(response="fdp", status=200)
 
-    @app.route("/pushpizza", methods=["POST"])
-    def pushpizza() -> Response:
+    @app.route("/pushvote", methods=["POST"])
+    def pushvote() -> Response:
         """Push pizza endpoints
 
         Returns:
@@ -323,9 +324,10 @@ def create_server(data_dir: str) -> Flask:
             json_data = json.loads(decode_data)
             username = json_data.get("username")
             vote = json_data.get("vote")
+            sport = json_data.get("sportname")
 
-            update_pizza_vote(data_dir=data_dir, username=username, vote=vote)
-            generate_pizza_results(data_dir)
+            update_vote(data_dir=data_dir, username=username, vote=vote, sportname=sport)
+            generate_vote_results(data_dir, sport)
 
             return Response(response="fdp", status=200)
         return Response(response="Error on endpoint pushpizza", status=404)
@@ -655,6 +657,7 @@ def create_server(data_dir: str) -> Flask:
                 ret["is_arbitre"] = True
                 if data["started"]:
                     ret["participants"] = data["participants"]
+                    random.shuffle(ret["participants"])
                 with open(data_dir + "/killer/killer_missions.json", "r") as f:
                     ret["missions"] = json.load(f)
                     
@@ -666,20 +669,22 @@ def create_server(data_dir: str) -> Flask:
 
             decode_data = request.data.decode("utf-8")
             json_data = json.loads(decode_data)
+            if "counter_kill" in json_data:
+                counter_kill = json_data["counter_kill"]
             if not data["started"] and "start_killer" in json_data:
                 if generate_killer(data_dir):
                     return Response(response="Game started", status=200)
                 return Response(response="Error in killer", status=404)
             else:
                 if name not in data["arbitre"]:
-                    if kill_player(data_dir, name):
+                    if kill_player(data_dir, name, counter_kill):
                         return Response(response="You died", status=200)
                 else:
                     logging.info(json_data)
                     status = 404
                     answer = "Error on killer"
                     if json_data["data"] == "kill":
-                        kill_player(data_dir, json_data["to_kill"]["name"], json_data["to_kill"]["give_credit"])
+                        kill_player(data_dir, json_data["to_kill"]["name"], counter_kill, json_data["to_kill"]["give_credit"])
                         answer = f'Killed {json_data["to_kill"]["name"]}'
                         status = 200
                     elif json_data["data"] == "missions":

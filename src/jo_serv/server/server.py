@@ -40,6 +40,8 @@ from jo_serv.tools.tools import (
     get_killer_player_info,
     generate_killer_results,
     generate_killer,
+    get_poke_info,
+    send_poke,
 )
 
 CANVA_SIZE = 50
@@ -776,6 +778,18 @@ def create_server(data_dir: str) -> Flask:
 
 
             return(make_response(dict(active_players=active_players, specs=specs, voting_in=voting_in, last_winner=last_winner, party_id=party_id, game_in_progress=game_in_progress, tour=tour)))
+        return Response(response="Error on shifumi", status=404)
+
+    @app.route("/poke/<path:names>", methods=["GET", "POST"])
+    def poke(names: str) -> Response:
+        from_user, to_user = names.split("-")
+        if request.method == "GET":
+            info = get_poke_info(data_dir, from_user, to_user)
+            return Response(response=json.dumps(info), status=200)
+        if request.method == "POST":
+            if send_poke(data_dir, from_user, to_user):
+                return Response(response="Poke sent", status=200)
+
         return Response(response="Error on shifumi", status=404)
 
     return app

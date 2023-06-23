@@ -1628,6 +1628,9 @@ def get_killer_player_info(name: str, participants: list) -> Any:
 
 
 def random_kills():
+    """
+    For debugging purpose only, do not use during real game
+    """
     with open("src/data_serv/killer/killer.json", "r") as file:
         players = json.load(file)["participants"]
     random.shuffle(players)
@@ -1635,3 +1638,40 @@ def random_kills():
         name = players.pop()["name"]
         kill_player("src/data_serv", name)
         print(f"killed {name}")
+
+
+def get_poke_info(data_dir: str, username: str, other_user: str):
+    with open(f"{data_dir}/poke.json", "r") as file:
+        data = json.load(file)
+    info = dict(can_send=True, score=0)
+    if other_user == username:
+        info["can_send"] = False
+        return info
+    for poke in data["pokes"]:
+        if username in poke["players"] and other_user in poke["players"]:
+            info["score"] = poke["score"]
+            info["can_send"] = poke["turn"] == username
+    return info
+
+
+def send_poke(data_dir: str, username: str, other_user: str):
+    with open(f"{data_dir}/poke.json", "r") as file:
+        data = json.load(file)
+    if other_user == username:
+        return False
+    for poke in data["pokes"]:
+        if username in poke["players"] and other_user in poke["players"]:
+            if poke["turn"] == username:
+                poke["turn"] = other_user
+                poke["score"] += 1
+                with open(f"{data_dir}/poke.json", "w") as file:
+                    json.dump(data, file)
+                send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
+                return True
+            return False
+    data["pokes"].append(dict(players=[username, other_user], turn=other_user, score=1))
+    with open(f"{data_dir}/poke.json", "w") as file:
+        json.dump(data, file)
+    # send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
+    return True
+    

@@ -1,11 +1,10 @@
 # Standard lib imports
-import random
 import datetime
 import hashlib
-from itertools import cycle
 import json
 import logging
 import os
+import random
 import re
 import time
 from threading import Lock
@@ -18,30 +17,30 @@ from jo_serv.tools.tools import (
     adapt_bet_file,
     generate_can_be_added_list,
     generate_event_list,
-    generate_vote_results,
+    generate_killer,
+    generate_killer_results,
     generate_pools,
     generate_series,
     generate_table,
+    generate_vote_results,
+    get_killer_player_info,
+    get_poke_info,
     get_sport_config,
+    kill_player,
     lock,
     players_list,
     send_notif,
+    send_poke,
     team_to_next_step,
     toggle_lock_bets,
     unlock,
     update_bet_file,
     update_global_results,
     update_list,
-    update_vote,
     update_playoff_match,
     update_poules_match,
+    update_vote,
     user_is_authorized,
-    kill_player,
-    get_killer_player_info,
-    generate_killer_results,
-    generate_killer,
-    get_poke_info,
-    send_poke,
 )
 
 CANVA_SIZE = 50
@@ -53,6 +52,7 @@ png_mutex = Lock()
 size_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 PARTY_STATUS = "NOT_STARTED"
+
 
 def create_server(data_dir: str) -> Flask:
     """Create the server
@@ -328,7 +328,9 @@ def create_server(data_dir: str) -> Flask:
             vote = json_data.get("vote")
             sport = json_data.get("sportname")
 
-            update_vote(data_dir=data_dir, username=username, vote=vote, sportname=sport)
+            update_vote(
+                data_dir=data_dir, username=username, vote=vote, sportname=sport
+            )
             generate_vote_results(data_dir, sport)
 
             return Response(response="fdp", status=200)
@@ -608,19 +610,16 @@ def create_server(data_dir: str) -> Flask:
         return Response(response="Error on endpoint canva", status=404)
 
     @app.route("/photo/<path:name>", methods=["GET"])
-    def photo(name :str) -> Any:
+    def photo(name: str) -> Any:
         logger.info(f"Get on : /photo for {name}")
         try:
-            resp = send_file(
-                f"{data_dir}/photos/{name}.jpeg", mimetype="image/jpeg"
-            )
+            resp = send_file(f"{data_dir}/photos/{name}.jpeg", mimetype="image/jpeg")
             return resp
-        except:
+        except Exception:
             return Response(response="Can't find requested photo", status=404)
 
-
     @app.route("/killer/<path:name>", methods=["GET", "POST"])
-    def killer(name :str) -> Response:
+    def killer(name: str) -> Response:
         """Killer endpoints
 
         Returns:
@@ -630,15 +629,17 @@ def create_server(data_dir: str) -> Flask:
             logger.info(f"Get on /killer from user {name}")
             with open(data_dir + "/killer/killer.json", "r") as f:
                 data = json.load(f)
-            ret = {'started' : data["started"],
-                   'is_alive' : True,
-                   'how_to_kill' : "",
-                   "kills" : [],
-                   "target" : "",
-                   "is_arbitre": False, 
-                   "over" : data["over"],
-                   "lifetime": "",
-                   "start_date": data["start_date"]}
+            ret = {
+                "started": data["started"],
+                "is_alive": True,
+                "how_to_kill": "",
+                "kills": [],
+                "target": "",
+                "is_arbitre": False,
+                "over": data["over"],
+                "lifetime": "",
+                "start_date": data["start_date"],
+            }
             if data["over"]:
                 ret["participants"] = data["participants"]
             elif name not in data["arbitre"]:
@@ -651,7 +652,7 @@ def create_server(data_dir: str) -> Flask:
                         info = get_killer_player_info(name, participants)
                         ret["how_to_kill"] = info["how_to_kill"]
                         ret["is_alive"] = info["is_alive"]
-                        if not info['is_alive']:
+                        if not info["is_alive"]:
                             ret["lifetime"] = info["lifetime"]
                         ret["kills"] = info["kills"]
                         ret["target"] = info["target"]
@@ -662,7 +663,7 @@ def create_server(data_dir: str) -> Flask:
                     random.shuffle(ret["participants"])
                 with open(data_dir + "/killer/killer_missions.json", "r") as f:
                     ret["missions"] = json.load(f)
-                    
+
             return Response(response=json.dumps(ret), status=200)
         elif request.method == "POST":
             logger.info(f"Post on /killer from user {name}")
@@ -686,18 +687,27 @@ def create_server(data_dir: str) -> Flask:
                     status = 404
                     answer = "Error on killer"
                     if json_data["data"] == "kill":
-                        kill_player(data_dir, json_data["to_kill"]["name"], counter_kill, json_data["to_kill"]["give_credit"])
+                        kill_player(
+                            data_dir,
+                            json_data["to_kill"]["name"],
+                            counter_kill,
+                            json_data["to_kill"]["give_credit"],
+                        )
                         answer = f'Killed {json_data["to_kill"]["name"]}'
                         status = 200
                     elif json_data["data"] == "missions":
-                        with open(f"{data_dir}/killer/killer_missions.json", "r") as file:
+                        with open(
+                            f"{data_dir}/killer/killer_missions.json", "r"
+                        ) as file:
                             missions = json.load(file)
                             logging.info(missions)
                         missions = []
                         for mission in json_data["missions"]:
                             if mission["title"]:
                                 missions.append(mission)
-                        with open(f"{data_dir}/killer/killer_missions.json", "w") as file:
+                        with open(
+                            f"{data_dir}/killer/killer_missions.json", "w"
+                        ) as file:
                             json.dump(missions, file)
                         answer = "Missions updated"
                         status = 200
@@ -716,20 +726,19 @@ def create_server(data_dir: str) -> Flask:
                             json.dump(data, file)
                         answer = "Changed mission"
                         status = 200
-                    return Response(response=answer, status=status)    
-
+                    return Response(response=answer, status=status)
 
         return Response(response="Error on killer", status=404)
-    
+
     @app.route("/shifumi", methods=["POST"])
     def shifumi() -> Response:
         """shifumi endpoints
         Returns:
             Response: The shifumi information
         """
-  
+
         if request.method == "POST":
-            
+
             decode_data = request.data.decode("utf-8")
             json_data = json.loads(decode_data)
             username = json_data.get("username")
@@ -738,13 +747,13 @@ def create_server(data_dir: str) -> Flask:
             shifumi_status.acquire()
             try:
                 status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
-                voting_in = int(status.get("votingtick")) - time.time() 
+                voting_in = int(status.get("votingtick")) - time.time()
                 last_winner = status.get("lastwinner")
                 active_players = status.get("active_players")
                 party_id = status.get("party_id")
                 game_in_progress = status.get("game_in_progress")
                 tour = status.get("tour")
-            except:
+            except Exception:
                 voting_in = -1
                 last_winner = "Whisky"
                 active_players = []
@@ -761,7 +770,7 @@ def create_server(data_dir: str) -> Flask:
             try:
                 data = json.load(open(data_dir + "/teams/shifumi.json", "r"))
 
-                data[username] = {"time":time.time(), "sign":sign}
+                data[username] = {"time": time.time(), "sign": sign}
                 specs = []
                 for player, params in data.items():
                     if time.time() - 2 < params.get("time"):
@@ -776,8 +785,17 @@ def create_server(data_dir: str) -> Flask:
             finally:
                 shifumi_presence.release()
 
-
-            return(make_response(dict(active_players=active_players, specs=specs, voting_in=voting_in, last_winner=last_winner, party_id=party_id, game_in_progress=game_in_progress, tour=tour)))
+            return make_response(
+                dict(
+                    active_players=active_players,
+                    specs=specs,
+                    voting_in=voting_in,
+                    last_winner=last_winner,
+                    party_id=party_id,
+                    game_in_progress=game_in_progress,
+                    tour=tour,
+                )
+            )
         return Response(response="Error on shifumi", status=404)
 
     @app.route("/poke/<path:names>", methods=["GET", "POST"])

@@ -1,19 +1,19 @@
 import hashlib
 import json
 import logging
+import math
 import os
 import shutil
 import time
-import math
 from enum import Enum
-from jo_serv.server.server import (
-    shifumi_presence,
-    shifumi_status
 
-)
-GAMESTATUS =  Enum("GAMESTATUS", ["INIT", "COUNTDOWN", "INPROGRESS"])
+from jo_serv.server.server import shifumi_presence, shifumi_status
+
+GAMESTATUS = Enum("GAMESTATUS", ["INIT", "COUNTDOWN", "INPROGRESS"])
+
+
 def shifumi_process(data_dir: str) -> None:
-    """ This process handles shifumi"""
+    """This process handles shifumi"""
     logger = logging.getLogger(__name__)
     logger.info("Shifumi process start")
     game_status = GAMESTATUS.INIT
@@ -37,22 +37,27 @@ def shifumi_process(data_dir: str) -> None:
             winner = "Whisky"
             previous_active_players = []
             previous_vote = -1
-        if first_time: # if a game wasn't already started, we add all new players
+        if first_time:  # if a game wasn't already started, we add all new players
             active_players = []
             players_and_sign = []
             for player, params in data.items():
-                if params.get("sign") != "puit" and time.time() - 2 < params.get("time"):
+                if params.get("sign") != "puit" and time.time() - 2 < params.get(
+                    "time"
+                ):
                     active_players.append(player)
                     players_and_sign.append((player, params.get("sign")))
-        else: # else we finish the game.
+        else:  # else we finish the game.
             active_players = previous_active_players
             players_and_sign = []
             for player in previous_active_players:
                 if data.get(player) is not None:
-                    if  time.time() - 2 > data.get(player).get("time"):
+                    if time.time() - 2 > data.get(player).get("time"):
                         active_players.remove(player)
                         logger.info(f"{player} left!")
-                    elif data.get(player).get("sign") != "puit" and data.get(player).get("time") > previous_vote + 2:
+                    elif (
+                        data.get(player).get("sign") != "puit"
+                        and data.get(player).get("time") > previous_vote + 2
+                    ):
                         players_and_sign.append((player, data.get(player).get("sign")))
                 else:
                     active_players.remove(player)
@@ -108,20 +113,33 @@ def shifumi_process(data_dir: str) -> None:
             first_time = True
             tour = 0
             logger.info("Reseting game")
-        json.dump(dict(votingtick=votingtick, lastwinner=winner, party_id=party_id, active_players=active_players, game_in_progress= not first_time, tour=tour), open(data_dir + "/teams/shifumi_status.json", "w"))
+        json.dump(
+            dict(
+                votingtick=votingtick,
+                lastwinner=winner,
+                party_id=party_id,
+                active_players=active_players,
+                game_in_progress=not first_time,
+                tour=tour,
+            ),
+            open(data_dir + "/teams/shifumi_status.json", "w"),
+        )
         shifumi_status.release()
 
+
 def vote_match(players):
-    """ players and match"""
+    """players and match"""
     if len(players) == 2:
         # finale directe:
         player0, sign0 = players[0]
         player1, sign1 = players[1]
         if sign0 == sign1:
             return "draw"
-        if (sign0 == "Ciseaux" and sign1 == "Papier") \
-            or ((sign0 == "Pierre" and sign1 == "Ciseaux")) \
-                or (sign0 == "Papier" and sign1 == "Pierre"):
+        if (
+            (sign0 == "Ciseaux" and sign1 == "Papier")
+            or ((sign0 == "Pierre" and sign1 == "Ciseaux"))
+            or (sign0 == "Papier" and sign1 == "Pierre")
+        ):
             return player0
         else:
             return player1

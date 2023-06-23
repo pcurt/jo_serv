@@ -9,9 +9,9 @@ import random
 import re
 import shutil
 import string
+from itertools import cycle
 from math import ceil
 from typing import Any, Dict, Tuple
-from itertools import cycle
 
 import requests  # type: ignore
 
@@ -654,7 +654,9 @@ def generate_vote_results(data_dir: str, sportname: str) -> None:
     year = str(datetime.date.today().year)
     data = dict()
     if os.path.exists("{data_dir}/results/sports/{sportname}_votes_summary.json"):
-        with open(f"{data_dir}/results/sports/{sportname}_votes_summary.json", "r") as file:
+        with open(
+            f"{data_dir}/results/sports/{sportname}_votes_summary.json", "r"
+        ) as file:
             data = json.load(file)
     data[year] = dict(Teams=players_score)
     with open(f"{data_dir}/results/sports/{sportname}_votes_summary.json", "w") as file:
@@ -699,7 +701,7 @@ def players_list() -> list:
         "Quentin",
         "Max",
         "Florent",
-        "Girex", 
+        "Girex",
         "Pierrick",
         "Jo",
         "Clement",
@@ -712,19 +714,20 @@ def players_list() -> list:
         "Mams",
         "Gui",
         "Beranger",
-        "Guillaume", 
+        "Guillaume",
         "Chachav",
         "Boulbi",
         "Bifteck",
         "Emma",
-        "Lapinou", 
+        "Lapinou",
         "Mathias",
         "Bryan",
-        "Reminem", 
+        "Reminem",
         "Mimo",
         "Jason",
-        "Jess"
+        "Jess",
     ]
+
 
 def killer_players() -> list:
     return [
@@ -736,7 +739,7 @@ def killer_players() -> list:
         "Quentin",
         "Max",
         "Florent",
-        "Girex", 
+        "Girex",
         "Pierrick",
         "Jo",
         "Clement",
@@ -749,22 +752,31 @@ def killer_players() -> list:
         "Beranger",
         "Boulbi",
         "Emma",
-        "Lapinou", 
+        "Lapinou",
         "Bryan",
-        "Reminem", 
+        "Reminem",
         "Mimo",
     ]
 
-def generate_account(data_dir : str, user : str) -> None:
+
+def generate_account(data_dir: str, user: str) -> None:
     with open(f"{data_dir}/login.json", "r") as file:
         users = json.load(file)["users"]
     if not any(user == known_user["username"] for known_user in users):
-        users.append(dict(username=user, password=''.join(random.choices(string.ascii_letters + string.digits, k=4))))
+        users.append(
+            dict(
+                username=user,
+                password="".join(
+                    random.choices(string.ascii_letters + string.digits, k=4)
+                ),
+            )
+        )
         print(f"{user} added")
     else:
         print(f"{user} already has an account")
     with open(f"{data_dir}/login.json", "w") as file:
         json.dump(dict(users=users), file)
+
 
 def users_list() -> list:
     users = players_list()
@@ -865,47 +877,49 @@ def activities_list(include_date: bool = False) -> Any:
             "Remise des prix": ["2023-07-16T15:30:00", "2023-07-16T17:30:00"],
         }
     return [
-            "Soirée d'ouverture!",
-            "Trail",
-            "Volley",
-            "Pizza",
-            "Waterpolo",
-            "SpikeBall",
-            "Blindtest",
-            "Orientation",
-            "Beerpong",
-            "Crepes",
-            "Flechette",
-            "Tong",
-            "Babyfoot",
-            "Slackline",
-            "Larmina",
-            "Ventriglisse",
-            "100mRicard",
-            "Rangement",
-            "Petanque",
-            "Remise des prix",
+        "Soirée d'ouverture!",
+        "Trail",
+        "Volley",
+        "Pizza",
+        "Waterpolo",
+        "SpikeBall",
+        "Blindtest",
+        "Orientation",
+        "Beerpong",
+        "Crepes",
+        "Flechette",
+        "Tong",
+        "Babyfoot",
+        "Slackline",
+        "Larmina",
+        "Ventriglisse",
+        "100mRicard",
+        "Rangement",
+        "Petanque",
+        "Remise des prix",
     ]
+
 
 def sports_list() -> list:
     return [
-            "Trail",
-            "Volley",
-            "Pizza",
-            "Waterpolo",
-            "SpikeBall",
-            "Blindtest",
-            "Orientation",
-            "Beerpong",
-            "Flechette",
-            "Tong",
-            "Babyfoot",
-            "Slackline",
-            "Larmina",
-            "Ventriglisse",
-            "100mRicard",
-            "Petanque",
+        "Trail",
+        "Volley",
+        "Pizza",
+        "Waterpolo",
+        "SpikeBall",
+        "Blindtest",
+        "Orientation",
+        "Beerpong",
+        "Flechette",
+        "Tong",
+        "Babyfoot",
+        "Slackline",
+        "Larmina",
+        "Ventriglisse",
+        "100mRicard",
+        "Petanque",
     ]
+
 
 def sort_list(old_list: list) -> list:
     new_list: list = []
@@ -954,7 +968,11 @@ def get_bet_score(player: Any, data_dir: str) -> dict:
                         for team in sport_results[current_year]["Teams"]:
                             logger.info(f"Team is {team}")
 
-                            if team["rank"] == 1 or team["rank"] == 2 or team["rank"] == 3:
+                            if (
+                                team["rank"] == 1
+                                or team["rank"] == 2
+                                or team["rank"] == 3
+                            ):
                                 logger.debug(
                                     f"Reading file  : {data_dir}/bets/{sport}.json"
                                 )
@@ -1470,22 +1488,32 @@ def generate_killer(data_dir: str) -> None:
     data["participants"] = []
     data["start_date"] = datetime.datetime.now().timestamp()
     for player in killer_players():
-        data["participants"].append({'name' : player, 'is_alive' : True, 'how_to_kill' : "", 'kills' : [], 'index' : 0, 'rank' : 0})
+        data["participants"].append(
+            {
+                "name": player,
+                "is_alive": True,
+                "how_to_kill": "",
+                "kills": [],
+                "index": 0,
+                "rank": 0,
+            }
+        )
 
     with open(f"{data_dir}/killer/killer_missions.json", "r") as missions_file:
         missions_data = json.load(missions_file)
     if len(missions_data) < len(data["participants"]):
-        logging.error(f"Can't start Killer: missing {len(data['participants']) - len(missions_data)} missions")
+        missing = len(data["participants"]) - len(missions_data)
+        logging.error(f"Can't start Killer: missing {missing} missions")
         return False
-    
+
     missions = missions_data
     random.shuffle(missions)
     random.shuffle(data["participants"])
     for i, participant in enumerate(data["participants"]):
-        participant['index'] = i
+        participant["index"] = i
         mission = missions.pop()["title"]
         participant["how_to_kill"] = mission
-    
+
     with open(f"{data_dir}/killer/killer_missions.json", "w") as missions_file:
         json.dump(missions_data, missions_file)
 
@@ -1494,7 +1522,7 @@ def generate_killer(data_dir: str) -> None:
     return True
 
 
-def kill_player(data_dir: str, name: str, counter_kill = False, give_credit = True) -> None:
+def kill_player(data_dir: str, name: str, counter_kill=False, give_credit=True) -> None:
     f = open(data_dir + "/killer/killer.json", "r")
     data = json.load(f)
     data["participants"] = sorted(data["participants"], key=lambda d: d["index"])
@@ -1515,11 +1543,15 @@ def kill_player(data_dir: str, name: str, counter_kill = False, give_credit = Tr
             player["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
             time_alive = datetime.datetime.now().timestamp() - data["start_date"]
             days = int(time_alive / 86400)
-            hours = int(time_alive % 86400/ 3600)
+            hours = int(time_alive % 86400 / 3600)
             minutes = int(time_alive % 3600 / 60)
             seconds = int(time_alive % 60)
             player["lifetime"] = f"{days}j {hours}h {minutes}min {seconds}s"
-            victim = {"name" : name, "mission": player["how_to_kill"], "date": player["death"]}
+            victim = {
+                "name": name,
+                "mission": player["how_to_kill"],
+                "date": player["death"],
+            }
             if counter_kill:
                 mission = victim["mission"]
                 victim["mission"] = "Contre kill"
@@ -1531,12 +1563,33 @@ def kill_player(data_dir: str, name: str, counter_kill = False, give_credit = Tr
                 player["kills"].append(victim)
                 if counter_kill:
                     player["how_to_kill"] = mission
-                # send_notif(player["name"], "Nouvelle victime", f'Bien joué! Tu as tué {victim["name"]}!', data_dir)
+                send_notif(
+                    player["name"],
+                    "Nouvelle victime",
+                    f'Bien joué! Tu as tué {victim["name"]}!',
+                    data_dir,
+                )
             if rank == 2:
-                # send_notif(player["name"], "Fin du Killer", f'Bien joué! Tu es le dernier en vie.', data_dir)
+                send_notif(
+                    player["name"],
+                    "Fin du Killer",
+                    "Bien joué! Tu es le dernier en vie.",
+                    data_dir,
+                )
+                send_notif(
+                    "all",
+                    "Fin du killer",
+                    "Le killer est terminé, connectez vous pour voir les résultats",
+                    data_dir,
+                )
                 player["rank"] = 1
                 data["over"] = True
-            # send_notif("all", "Nouvelle victime", "J'ai vu, je sais qui c'est mais je dirai rien", data_dir)
+            send_notif(
+                "all",
+                "Nouvelle victime",
+                "J'ai vu, je sais qui c'est mais je dirai rien",
+                data_dir,
+            )
             with open(f"{data_dir}/killer/killer.json", "w") as f:
                 json.dump(data, f)
             if data["over"]:
@@ -1606,7 +1659,7 @@ def get_killer_player_info(name: str, participants: list) -> Any:
     for player in participants:
         if player["name"] == name:
             info["kills"] = player["kills"]
-            if player["is_alive"] == False:
+            if player["is_alive"] is False:
                 # Already killed
                 info["is_alive"] = False
                 info["lifetime"] = player["lifetime"]
@@ -1666,7 +1719,9 @@ def send_poke(data_dir: str, username: str, other_user: str):
                 poke["score"] += 1
                 with open(f"{data_dir}/poke.json", "w") as file:
                     json.dump(data, file)
-                send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
+                send_notif(
+                    other_user, "Poke", f"{username} vous a envoyé un poke", data_dir
+                )
                 return True
             return False
     data["pokes"].append(dict(players=[username, other_user], turn=other_user, score=1))
@@ -1674,4 +1729,3 @@ def send_poke(data_dir: str, username: str, other_user: str):
         json.dump(data, file)
     # send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
     return True
-    

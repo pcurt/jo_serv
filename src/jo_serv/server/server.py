@@ -48,6 +48,7 @@ MAX_NUMBER_CANVA = 500
 live_update_mutex = Lock()
 shifumi_presence = Lock()
 shifumi_status = Lock()
+shifumi_scores = Lock()
 png_mutex = Lock()
 size_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
@@ -744,6 +745,7 @@ def create_server(data_dir: str) -> Flask:
             username = json_data.get("username")
             sign = json_data.get("sign")
             mobile_party_id = json_data.get("party_id")
+            mobile_tour = json_data.get("tour")
             shifumi_status.acquire()
             try:
                 status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
@@ -753,6 +755,7 @@ def create_server(data_dir: str) -> Flask:
                 party_id = status.get("party_id")
                 game_in_progress = status.get("game_in_progress")
                 tour = status.get("tour")
+                leaver = status.get("leaver")
             except Exception:
                 voting_in = -1
                 last_winner = "Whisky"
@@ -762,9 +765,12 @@ def create_server(data_dir: str) -> Flask:
                 game_in_progress = False
             finally:
                 shifumi_status.release()
+            shifumi_scores.acquire()
+            scores = json.load(open(data_dir + "/teams/shifumi_scores.json", "r"))
+            shifumi_scores.release()
             if active_players is None:
                 active_players = []
-            if party_id != mobile_party_id:
+            if party_id != mobile_party_id or tour != mobile_tour:
                 sign = "puit"
             shifumi_presence.acquire()
             try:
@@ -794,6 +800,8 @@ def create_server(data_dir: str) -> Flask:
                     party_id=party_id,
                     game_in_progress=game_in_progress,
                     tour=tour,
+                    leaver=leaver,
+                    scores=scores,
                 )
             )
         return Response(response="Error on shifumi", status=404)

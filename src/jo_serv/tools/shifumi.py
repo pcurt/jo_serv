@@ -7,9 +7,10 @@ import shutil
 import time
 from enum import Enum
 
-from jo_serv.server.server import shifumi_presence, shifumi_status
+from jo_serv.server.server import shifumi_presence, shifumi_scores, shifumi_status
 
 GAMESTATUS = Enum("GAMESTATUS", ["INIT", "COUNTDOWN", "INPROGRESS"])
+VOTING_CD = 10
 
 
 def shifumi_process(data_dir: str) -> None:
@@ -20,6 +21,7 @@ def shifumi_process(data_dir: str) -> None:
     party_id = math.floor(time.time())
     first_time = True
     tour = 0
+    leaver = []
     while True:
         time.sleep(1)
         shifumi_presence.acquire()
@@ -54,21 +56,18 @@ def shifumi_process(data_dir: str) -> None:
                     if time.time() - 2 > data.get(player).get("time"):
                         active_players.remove(player)
                         logger.info(f"{player} left!")
-                    elif (
-                        data.get(player).get("sign") != "puit"
-                        and data.get(player).get("time") > previous_vote + 2
-                    ):
+                        leaver.append(player)
+                    elif data.get(player).get("sign") != "puit":
                         players_and_sign.append((player, data.get(player).get("sign")))
+
                 else:
                     active_players.remove(player)
                     logger.info(f"{player} left!")
-        logger.info(active_players)
-        logger.info(players_and_sign)
-        logger.info(game_status)
+                    leaver.append(player)
         if len(players_and_sign) > 1:
             # game will start
             if game_status == GAMESTATUS.INIT:
-                votingtick = math.floor(time.time()) + 2
+                votingtick = math.floor(time.time()) + VOTING_CD
                 game_status = GAMESTATUS.COUNTDOWN
             elif game_status == GAMESTATUS.INPROGRESS:
                 players_who_played = [x[0] for x in players_and_sign]
@@ -80,7 +79,7 @@ def shifumi_process(data_dir: str) -> None:
                     else:
                         all_players_voted = True
                 if all_players_voted:
-                    votingtick = math.floor(time.time()) + 2
+                    votingtick = math.floor(time.time()) + VOTING_CD
                     game_status = GAMESTATUS.COUNTDOWN
                     logger.info("all players voted! lol")
             else:
@@ -92,6 +91,7 @@ def shifumi_process(data_dir: str) -> None:
                     tour += 1
                     if type(winner) == list:
                         active_players = winner
+                        leaver = []
                         if len(active_players) == 1:
                             winner = winner[0]
                             party_id = math.floor(time.time())
@@ -102,17 +102,33 @@ def shifumi_process(data_dir: str) -> None:
                             logger.info("game_status in progress")
                             game_status = GAMESTATUS.INPROGRESS
                     else:
+                        leaver = []
                         game_status = GAMESTATUS.INIT
                         if winner != "draw":
                             party_id = math.floor(time.time())
                             first_time = True
                             tour = 0
+                            shifumi_scores.acquire()
+                            scores = json.load(
+                                open(data_dir + "/teams/shifumi_scores.json", "r")
+                            )
+                            if scores.get(winner) is not None:
+                                scores[winner] = int(scores.get(winner)) + 1
+                            else:
+                                scores[winner] = 1
+                            json.dump(
+                                scores,
+                                open(data_dir + "/teams/shifumi_scores.json", "w"),
+                            )
+                            shifumi_scores.release()
+                        else:
+                            game_status = GAMESTATUS.INPROGRESS
+                            logger.info("Draw so no winner yet")
         elif len(active_players) < 2:
             game_status = GAMESTATUS.INIT
             votingtick = -1
             first_time = True
             tour = 0
-            logger.info("Reseting game")
         json.dump(
             dict(
                 votingtick=votingtick,
@@ -121,6 +137,7 @@ def shifumi_process(data_dir: str) -> None:
                 active_players=active_players,
                 game_in_progress=not first_time,
                 tour=tour,
+                leaver=leaver,
             ),
             open(data_dir + "/teams/shifumi_status.json", "w"),
         )

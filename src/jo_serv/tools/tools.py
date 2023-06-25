@@ -1480,8 +1480,8 @@ def toggle_lock_bets(sport: str, data_dir: str) -> None:
         json.dump(data, file, ensure_ascii=False)
 
 
-def generate_killer(data_dir: str) -> None:
-    data = dict()
+def generate_killer(data_dir: str) -> bool:
+    data: dict = dict()
     data["started"] = True
     data["over"] = False
     data["arbitre"] = ["Mathias", "Bifteck"]
@@ -1522,10 +1522,12 @@ def generate_killer(data_dir: str) -> None:
     return True
 
 
-def kill_player(data_dir: str, name: str, counter_kill=False, give_credit=True) -> None:
+def kill_player(
+    data_dir: str, name: str, counter_kill: bool = False, give_credit: bool = True
+) -> bool:
     f = open(data_dir + "/killer/killer.json", "r")
     data = json.load(f)
-    data["participants"] = sorted(data["participants"], key=lambda d: d["index"])
+    data["participants"] = sorted(data["participants"], key=lambda d: d["index"])  # type: ignore
     rank = 0
     for player in data["participants"]:
         if player["is_alive"]:
@@ -1628,12 +1630,12 @@ def generate_killer_results(data_dir: str) -> None:
         players = data["participants"]
     for player in players:
         player["nr_of_kills"] = len(player["kills"])
-    players = sorted(players, key=lambda i: i["nr_of_kills"])
+    players = sorted(players, key=lambda i: i["nr_of_kills"])  # type: ignore
     players.reverse()
     rank = 1
     players[0]["kills_rank"] = 1
     kills = players[0]["nr_of_kills"]
-    teams: dict = dict(Teams=[])
+    new_teams: dict = dict(Teams=[])
     for player in players:
         if player["nr_of_kills"] != kills:
             rank += 1
@@ -1641,19 +1643,19 @@ def generate_killer_results(data_dir: str) -> None:
                 break
             kills = player["nr_of_kills"]
         player["kills_rank"] = rank
-        teams["Teams"].append(player)
+        new_teams["Teams"].append(player)
     with open(f"{data_dir}/killer/killer.json", "w") as file:
         json.dump(data, file)
-    for player in teams["Teams"]:
+    for player in new_teams["Teams"]:
         player["Players"] = player["name"]
         player["rank"] = player["kills_rank"]
         del player["name"]
 
-    add_new_results("Killer-Kills", teams, data_dir)
+    add_new_results("Killer-Kills", new_teams, data_dir)
 
 
 def get_killer_player_info(name: str, participants: list) -> Any:
-    participants = sorted(participants, key=lambda d: d["index"])
+    participants = sorted(participants, key=lambda d: d["index"])  # type: ignore
     pool = cycle(participants)
     info = dict(kills=[], is_alive=False, target="", how_to_kill="")
     for player in participants:
@@ -1680,7 +1682,7 @@ def get_killer_player_info(name: str, participants: list) -> Any:
     return info
 
 
-def random_kills():
+def random_kills() -> None:
     """
     For debugging purpose only, do not use during real game
     """
@@ -1693,7 +1695,7 @@ def random_kills():
         print(f"killed {name}")
 
 
-def get_poke_info(data_dir: str, username: str, other_user: str):
+def get_poke_info(data_dir: str, username: str, other_user: str) -> dict:
     with open(f"{data_dir}/poke.json", "r") as file:
         data = json.load(file)
     info = dict(can_send=True, score=0)
@@ -1707,7 +1709,7 @@ def get_poke_info(data_dir: str, username: str, other_user: str):
     return info
 
 
-def send_poke(data_dir: str, username: str, other_user: str):
+def send_poke(data_dir: str, username: str, other_user: str) -> bool:
     with open(f"{data_dir}/poke.json", "r") as file:
         data = json.load(file)
     if other_user == username:

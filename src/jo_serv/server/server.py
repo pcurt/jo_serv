@@ -570,7 +570,7 @@ def create_server(data_dir: str) -> Flask:
                     data = json.load(file)
                     username = data[id]["name"]
                     response = make_response(username)
-                    response.headers["Content-length"] = len(username)
+                    response.headers["Content-length"] = str(len(username))
                     return response
         return Response(response="wrongid", status=404)
 

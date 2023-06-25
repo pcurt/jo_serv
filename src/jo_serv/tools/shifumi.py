@@ -1,11 +1,9 @@
-import hashlib
 import json
 import logging
 import math
-import os
-import shutil
 import time
 from enum import Enum
+from typing import Any
 
 from jo_serv.server.server import shifumi_presence, shifumi_scores, shifumi_status
 
@@ -33,12 +31,10 @@ def shifumi_process(data_dir: str) -> None:
             data_status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
             winner = data_status.get("lastwinner")
             previous_active_players = data_status.get("active_players")
-            previous_vote = data_status.get("votingtick")
-        except:
+        except Exception:
             logger.info("Exception in shifumi.py")
             winner = "Whisky"
             previous_active_players = []
-            previous_vote = -1
         if first_time:  # if a game wasn't already started, we add all new players
             active_players = []
             players_and_sign = []
@@ -144,7 +140,7 @@ def shifumi_process(data_dir: str) -> None:
         shifumi_status.release()
 
 
-def vote_match(players):
+def vote_match(players: list) -> Any:
     """players and match"""
     if len(players) == 2:
         # finale directe:

@@ -45,7 +45,7 @@ def shifumi_process(data_dir: str) -> None:
                     "time"
                 ):
                     active_players.append(player)
-                    players_and_sign.append(player, params.get("sign"), False))
+                    players_and_sign.append((player, params.get("sign"), False))
         else:  # else we finish the game.
             active_players = previous_active_players
             players_and_sign = []

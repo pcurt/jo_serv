@@ -18,6 +18,7 @@ def shifumi_process(data_dir: str) -> None:
     game_status = GAMESTATUS.INIT
     party_id = math.floor(time.time())
     first_time = True
+    round_in_progress = False
     tour = 0
     leaver = []
     while True:
@@ -62,7 +63,9 @@ def shifumi_process(data_dir: str) -> None:
                     leaver.append(player)
         if len(players_and_sign) > 1:
             # game will start
+            logger.info(f"game_status {game_status}")
             if game_status == GAMESTATUS.INIT:
+                round_in_progress = True
                 votingtick = math.floor(time.time()) + VOTING_CD
                 game_status = GAMESTATUS.COUNTDOWN
             elif game_status == GAMESTATUS.INPROGRESS:
@@ -99,6 +102,7 @@ def shifumi_process(data_dir: str) -> None:
                             game_status = GAMESTATUS.INPROGRESS
                     else:
                         leaver = []
+                        round_in_progress = False
                         game_status = GAMESTATUS.INIT
                         if winner != "draw":
                             party_id = math.floor(time.time())
@@ -134,6 +138,8 @@ def shifumi_process(data_dir: str) -> None:
                 game_in_progress=not first_time,
                 tour=tour,
                 leaver=leaver,
+                players_and_sign=players_and_sign,
+                round_in_progress=round_in_progress,
             ),
             open(data_dir + "/teams/shifumi_status.json", "w"),
         )

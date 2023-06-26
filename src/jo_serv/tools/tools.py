@@ -1164,6 +1164,7 @@ def send_notif(to: str, title: str, body: str, data_dir: str) -> None:
         if "ExponentPushToken" in token:
             data = {"to": token.split(":")[0], "title": title, "body": body}
             requests.post("https://exp.host/--/api/v2/push/send", data=data)
+            logging.info(data)
 
 
 def rm_players_from_his_pizza_list(data_dir: str) -> None:
@@ -1729,5 +1730,5 @@ def send_poke(data_dir: str, username: str, other_user: str) -> bool:
     data["pokes"].append(dict(players=[username, other_user], turn=other_user, score=1))
     with open(f"{data_dir}/poke.json", "w") as file:
         json.dump(data, file)
-    # send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
+    send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
     return True

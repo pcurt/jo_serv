@@ -106,11 +106,11 @@ def create_server(data_dir: str) -> Flask:
             Response: The chat file content
         """
         if request.method == "GET":
-            logger.info(f"Get on /Chatalere/{name}")
+            logger.debug(f"Get on /Chatalere/{name}")
             path = data_dir + "/chat/" + name
             if os.path.exists(path):
                 with open(path, "rb") as file:
-                    logger.info(f"Read files {path}")
+                    logger.debug(f"Read files {path}")
                     return Response(response=file.read(), status=200)
             return Response(response="No such file", status=404)
         if request.method == "POST":
@@ -751,32 +751,48 @@ def create_server(data_dir: str) -> Flask:
                 status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
                 voting_in = int(status.get("votingtick")) - time.time()
                 last_winner = status.get("lastwinner")
-                active_players = status.get("active_players")
+                list_active_players = status.get("active_players")
                 party_id = status.get("party_id")
                 game_in_progress = status.get("game_in_progress")
+                round_in_progress = status.get("round_in_progress")
                 tour = status.get("tour")
                 leaver = status.get("leaver")
             except Exception:
                 voting_in = -1
                 last_winner = "Whisky"
-                active_players = []
+                list_active_players = []
                 party_id = -1
                 tour = 0
                 game_in_progress = False
+                round_in_progress = False
             finally:
                 shifumi_status.release()
             shifumi_scores.acquire()
             scores = json.load(open(data_dir + "/teams/shifumi_scores.json", "r"))
             shifumi_scores.release()
-            if active_players is None:
-                active_players = []
+            if list_active_players is None:
+                list_active_players = []
             if party_id != mobile_party_id or tour != mobile_tour:
                 sign = "puit"
             shifumi_presence.acquire()
             try:
                 data = json.load(open(data_dir + "/teams/shifumi.json", "r"))
-
                 data[username] = {"time": time.time(), "sign": sign}
+
+                # Compute the active_players information
+                active_players = []
+
+                for player in list_active_players:
+                    sign = data.get(player).get("sign")
+                    if sign == "puit":
+                        has_played = False
+                    else:
+                        has_played = True
+                    active_player = dict(username=player, has_played=has_played)
+                    active_players.append(active_player)
+                logger.info(f"active_players : {active_players}")
+                logger.info(f"round_in_progress : {round_in_progress}")
+                 
                 specs = []
                 for player, params in data.items():
                     if time.time() - 2 < params.get("time"):
@@ -784,7 +800,7 @@ def create_server(data_dir: str) -> Flask:
                             if params.get("sign") == "puit":
                                 specs.append(player)
                         else:
-                            if player not in active_players:
+                            if player not in list_active_players:
                                 specs.append(player)
 
                 json.dump(data, open(data_dir + "/teams/shifumi.json", "w"))
@@ -794,16 +810,33 @@ def create_server(data_dir: str) -> Flask:
             return make_response(
                 dict(
                     active_players=active_players,
+                    players_and_sign=[],
                     specs=specs,
                     voting_in=voting_in,
                     last_winner=last_winner,
                     party_id=party_id,
                     game_in_progress=game_in_progress,
+                    round_in_progress=round_in_progress,
                     tour=tour,
                     leaver=leaver,
                     scores=scores,
                 )
             )
+
+        else:  # GET
+            status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
+            round_in_progress = status.get("round_in_progress")
+            if round_in_progress:
+                players_and_sign = status.get("players_and_sign")
+            else:
+                players_and_sign = []
+
+            return make_response(
+                dict(
+                    players_and_sign=players_and_sign,
+                )
+            )
+
         return Response(response="Error on shifumi", status=404)
 
     @app.route("/poke/<path:names>", methods=["GET", "POST"])

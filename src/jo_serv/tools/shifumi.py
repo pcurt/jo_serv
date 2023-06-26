@@ -21,6 +21,7 @@ def shifumi_process(data_dir: str) -> None:
     round_in_progress = False
     tour = 0
     leaver = []
+    voted_players_and_sign = []
     while True:
         time.sleep(1)
         shifumi_presence.acquire()
@@ -44,7 +45,7 @@ def shifumi_process(data_dir: str) -> None:
                     "time"
                 ):
                     active_players.append(player)
-                    players_and_sign.append((player, params.get("sign")))
+                    players_and_sign.append(player, params.get("sign"), False))
         else:  # else we finish the game.
             active_players = previous_active_players
             players_and_sign = []
@@ -55,7 +56,7 @@ def shifumi_process(data_dir: str) -> None:
                         logger.info(f"{player} left!")
                         leaver.append(player)
                     elif data.get(player).get("sign") != "puit":
-                        players_and_sign.append((player, data.get(player).get("sign")))
+                        players_and_sign.append((player, data.get(player).get("sign"), False))
 
                 else:
                     active_players.remove(player)
@@ -85,12 +86,17 @@ def shifumi_process(data_dir: str) -> None:
                 if votingtick == math.floor(time.time()):
                     logger.info("Voting!")
                     winner = vote_match(players_and_sign)
+                    voted_players_and_sign = players_and_sign
                     logger.info(winner)
                     first_time = False
                     tour += 1
                     if type(winner) == list:
                         active_players = winner
                         leaver = []
+                        for i, (jugadores, cursign, _) in enumerate(voted_players_and_sign):
+                            for nonloser in winner:
+                                if jugadores == nonloser:
+                                    voted_players_and_sign[i] = (jugadores, cursign, True)
                         if len(active_players) == 1:
                             winner = winner[0]
                             party_id = math.floor(time.time())
@@ -108,6 +114,9 @@ def shifumi_process(data_dir: str) -> None:
                             party_id = math.floor(time.time())
                             first_time = True
                             tour = 0
+                            for i, (jugadores, cursign, _) in enumerate(voted_players_and_sign):
+                                if jugadores == winner:
+                                    voted_players_and_sign[i] = (jugadores, cursign, True)
                             shifumi_scores.acquire()
                             scores = json.load(
                                 open(data_dir + "/teams/shifumi_scores.json", "r")
@@ -138,7 +147,7 @@ def shifumi_process(data_dir: str) -> None:
                 game_in_progress=not first_time,
                 tour=tour,
                 leaver=leaver,
-                players_and_sign=players_and_sign,
+                players_and_sign=voted_players_and_sign,
                 round_in_progress=round_in_progress,
             ),
             open(data_dir + "/teams/shifumi_status.json", "w"),
@@ -150,8 +159,8 @@ def vote_match(players: list) -> Any:
     """players and match"""
     if len(players) == 2:
         # finale directe:
-        player0, sign0 = players[0]
-        player1, sign1 = players[1]
+        player0, sign0, _ = players[0]
+        player1, sign1, _ = players[1]
         if sign0 == sign1:
             return "draw"
         if (
@@ -184,7 +193,7 @@ def vote_match(players: list) -> Any:
         if "Ciseaux" in signs and "Papier" in signs:
             winning_sign = "Ciseaux"
         winning_players = []
-        for player, sign in players:
+        for player, sign, _ in players:
             if sign == winning_sign:
                 winning_players.append(player)
         return winning_players

@@ -757,6 +757,7 @@ def create_server(data_dir: str) -> Flask:
                 round_in_progress = status.get("round_in_progress")
                 tour = status.get("tour")
                 leaver = status.get("leaver")
+                players_and_sign = status.get("players_and_sign")
             except Exception:
                 voting_in = -1
                 last_winner = "Whisky"
@@ -765,6 +766,7 @@ def create_server(data_dir: str) -> Flask:
                 tour = 0
                 game_in_progress = False
                 round_in_progress = False
+                players_and_sign = []
             finally:
                 shifumi_status.release()
             shifumi_scores.acquire()
@@ -790,8 +792,8 @@ def create_server(data_dir: str) -> Flask:
                         has_played = True
                     active_player = dict(username=player, has_played=has_played)
                     active_players.append(active_player)
-                logger.info(f"active_players : {active_players}")
-                logger.info(f"round_in_progress : {round_in_progress}")
+                # logger.info(f"active_players : {active_players}")
+                # logger.info(f"round_in_progress : {round_in_progress}")
                  
                 specs = []
                 for player, params in data.items():
@@ -810,7 +812,7 @@ def create_server(data_dir: str) -> Flask:
             return make_response(
                 dict(
                     active_players=active_players,
-                    players_and_sign=[],
+                    players_and_sign=players_and_sign,
                     specs=specs,
                     voting_in=voting_in,
                     last_winner=last_winner,
@@ -820,20 +822,6 @@ def create_server(data_dir: str) -> Flask:
                     tour=tour,
                     leaver=leaver,
                     scores=scores,
-                )
-            )
-
-        else:  # GET
-            status = json.load(open(data_dir + "/teams/shifumi_status.json", "r"))
-            round_in_progress = status.get("round_in_progress")
-            if round_in_progress:
-                players_and_sign = status.get("players_and_sign")
-            else:
-                players_and_sign = []
-
-            return make_response(
-                dict(
-                    players_and_sign=players_and_sign,
                 )
             )
 

@@ -839,4 +839,55 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on shifumi", status=404)
 
+    @app.route("/life", methods=["POST", "GET"])
+    def life() -> Response:
+        if request.method == "POST":
+            decoded_data = json.loads(request.data.decode("utf-8"))
+            if "username" not in decoded_data or "screen" not in decoded_data:
+                return Response(response="Error on lifestate", status=404)
+            username = decoded_data["username"]
+            screen = decoded_data["screen"]
+            if username == "" or screen == "":
+                return Response(response="Error on lifestate", status=404)
+            with open(f"{data_dir}/connection.json", "r") as file:
+                data = json.load(file)
+            for user in data["users"]:
+                if user["name"] == username:
+                    user["last_online"] = time.time()
+                    user["screen"] = screen
+                    with open(f"{data_dir}/connection.json", "w") as file:
+                        json.dump(data, file)
+                    return Response(response="Ok", status=200)
+            data["users"].append(dict(name=username, last_online=time.time(), screen=screen))
+            with open(f"{data_dir}/connection.json", "w") as file:
+                json.dump(data, file)
+            return Response(response="Ok", status=200)
+
+        if request.method == "GET":
+            with open(f"{data_dir}/connection.json", "r") as file:
+                data = json.load(file)
+            online_users = []
+            for user in data["users"]:
+                if user["last_online"] + 5 > time.time():
+                    online_users.append(dict(name=user["name"], screen=user["screen"]))
+            return make_response(dict(online=online_users))
+            
+        return Response(response="Error on lifestate", status=404)
+
+    @app.route("/annonce", methods=["POST", "GET"])
+    def annonce() -> Response:
+        if request.method == "POST":
+            decoded_data = request.data.decode("utf-8")
+            with open(f"{data_dir}/annonce.txt", "w") as file:
+                file.write(decoded_data)
+            return Response(response="Ok", status=200)
+
+        if request.method == "GET":
+            with open(f"{data_dir}/annonce.txt", "r") as file:
+                data = file.read()
+                
+            return make_response(data)
+            
+        return Response(response="Error on annonce", status=404)
+
     return app

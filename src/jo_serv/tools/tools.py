@@ -1598,6 +1598,19 @@ def kill_player(
             if data["over"]:
                 generate_killer_results(data_dir)
                 update_global_results(data_dir)
+            else:
+                player_found = False
+                pool2 = cycle(reversed(data["participants"]))
+                for player in pool2:
+                    if player_found and player["is_alive"]:
+                        print(f'sending to {player["name"]}')
+                        send_notif(player["name"],
+                                "Killer",
+                                f"Attention {name} s'est fait contre kill, une nouvelle victime t'as été assignée",
+                                data_dir)
+                        return True
+                    if player["name"] == name:
+                        player_found = True
             return True
     return False
 

@@ -51,6 +51,7 @@ shifumi_status = Lock()
 shifumi_scores = Lock()
 png_mutex = Lock()
 size_mutex = Lock()
+connection_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 PARTY_STATUS = "NOT_STARTED"
 
@@ -849,23 +850,41 @@ def create_server(data_dir: str) -> Flask:
             screen = decoded_data["screen"]
             if username == "" or screen == "":
                 return Response(response="Error on lifestate", status=404)
-            with open(f"{data_dir}/connection.json", "r") as file:
-                data = json.load(file)
+            connection_mutex.acquire()
+            try:
+                with open(f"{data_dir}/connection.json", "r") as file:
+                    data = json.load(file)
+            finally:
+                connection_mutex.release()
             for user in data["users"]:
                 if user["name"] == username:
                     user["last_online"] = time.time()
                     user["screen"] = screen
-                    with open(f"{data_dir}/connection.json", "w") as file:
-                        json.dump(data, file)
+                    try:
+                        connection_mutex.acquire()
+                        with open(f"{data_dir}/connection.json", "w") as file:
+                            json.dump(data, file)
+                    finally:
+                        connection_mutex.release()
+                    
                     return Response(response="Ok", status=200)
             data["users"].append(dict(name=username, last_online=time.time(), screen=screen))
-            with open(f"{data_dir}/connection.json", "w") as file:
-                json.dump(data, file)
+            try:
+                connection_mutex.acquire()
+                with open(f"{data_dir}/connection.json", "w") as file:
+                    json.dump(data, file)
+            finally:
+                connection_mutex.release()
+
             return Response(response="Ok", status=200)
 
         if request.method == "GET":
-            with open(f"{data_dir}/connection.json", "r") as file:
-                data = json.load(file)
+            try:
+                connection_mutex.acquire()
+                with open(f"{data_dir}/connection.json", "r") as file:
+                    data = json.load(file)
+            finally:
+                connection_mutex.release()
             online_users = []
             for user in data["users"]:
                 if user["last_online"] + 5 > time.time():

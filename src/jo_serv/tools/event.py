@@ -48,76 +48,6 @@ def event_handler(data_dir: str) -> None:
         time.sleep(60)  # Wait next event
 
 
-def start_happy_hour_clicker(data_dir: str) -> None:
-    to = "all"
-    title = "Clicker: Happy Hour!"
-    save_current_clicker_scores(data_dir)
-    with open(f"{data_dir}/teams/Clicker_HH.json", "w") as file:
-        json.dump(dict(HH=True), file, ensure_ascii=False)
-    send_notif(
-        to,
-        title,
-        "C'est parti! Pour un clic acheté, un clic offert! Profitez en dès maintenant sur \
-votre appli préférée. La personne réalisant le meilleur score pendant cette période gagnera \
-la possiblité d'envoyer une notif aux personnes de son choix!",
-        data_dir,
-    )
-
-
-def notif_end_pizza_vote(data_dir: str) -> None:
-    to = "all"
-    title = "Vote pizza"
-    send_notif(
-        to,
-        title,
-        "Les votes vont bientôt être cloturés pour le concours de Pizza. Il ne vous reste \
-qu'un heure pour voter pour votre préférée!",
-        data_dir,
-    )
-
-
-def end_happy_hour_clicker(data_dir: str) -> None:
-    with open(f"{data_dir}/teams/Clicker_HH.json", "w") as file:
-        json.dump(dict(HH=False), file, ensure_ascii=False)
-    ranks = compare_clicker_scores(data_dir)
-    title = "Clicker: Happy Hour!"
-    firsts = ""
-    for first in ranks["first"]:
-        send_notif(
-            first["name"],
-            title,
-            f"Félicitions! Tu as gagné cette Happy hour avec un score de {first['Clicks']}.\
-Encore un click sur cette notification pour gagner ta notif PUSH!",
-            data_dir,
-        )
-        firsts += f"{first['name']} "
-    seconds = ""
-    for second in ranks["second"]:
-        send_notif(
-            second["name"],
-            title,
-            f"Dommage! Cette fois ci ce ne sera que la 2e place pour toi, ton score:\
- {second['Clicks']}",
-            data_dir,
-        )
-        seconds += f"{second['name']} "
-    thirds = ""
-    for third in ranks["third"]:
-        send_notif(
-            third["name"],
-            title,
-            f"3e place! C'est bof, il va falloir s'entrainer pour la prochaine fois, \
-ton score: {third['Clicks']}",
-            data_dir,
-        )
-        thirds += f"{third['name']} "
-    for noob in ranks["noobs"]:
-        send_notif(noob["name"], title, "T'es mauvais!", data_dir)
-    message = f"C'est la fin de l'Happy Hour!\n1er:{firsts}score: {first['Clicks']}\n2e:\
- {seconds}score: {second['Clicks']}\n3e: {thirds}score: {third['Clicks']}"
-    send_notif("all", title, message, data_dir)
-
-
 def notif_start_sport(args: dict, data_dir: str) -> None:
     sport = args["sport"]
     to = "all"
@@ -174,8 +104,8 @@ def set_event_done(event_name: Any, data_dir: str) -> Any:
     events = get_events(data_dir)
     for event in events:
         if event["name"] == event_name:
-            event["done"] = True
-            print(f"{event_name} is done")
+            print(f"{event_name} is cleared")
+            events.remove(event)
     with open(f"{data_dir}/events.json", "w") as file:
         json.dump(dict(Events=events), file, ensure_ascii=False)
 
@@ -184,80 +114,18 @@ def get_callback(func_name: Any) -> Any:
     return globals()[func_name]
 
 
-def set_end_pizza(data_dir: str) -> None:
-    with open(f"{data_dir}/teams/Pizza_status.json", "r") as file:
-        data = json.load(file)
-    data["locked"] = True
-    with open(f"{data_dir}/teams/Pizza_status.json", "w") as file:
-        json.dump(data, file, ensure_ascii=False)
-
-    send_notif(
-        "all",
-        "Vote Pizza terminé",
-        "Vous pouvez désormais voir les résultast!",
-        data_dir,
-    )
-
-
-def save_current_clicker_scores(data_dir: str) -> None:
-    shutil.copy(f"{data_dir}/teams/Clicker.json", f"{data_dir}/teams/Clicker_save.json")
-
-
-def compare_clicker_scores(data_dir: str) -> dict:
-    with open(f"{data_dir}/teams/Clicker.json", "r") as file:
-        current_scores = json.load(file)
-    with open(f"{data_dir}/teams/Clicker_save.json", "r") as file:
-        old_scores = json.load(file)
-
-    clicker = []
-    for player_data in current_scores:
-        for old_player_data in old_scores:
-            if old_player_data["Players"] == player_data["Players"]:
-                score = player_data["Clicks"] - old_player_data["Clicks"]
-                clicker.append(dict(Players=player_data["Players"], Clicks=score))
-    calculate_rank_clicker(clicker, "René Coty")
-    results = None
-    rank = {}
-    rank["first"] = get_nth(1, results)
-    rank["second"] = get_nth(2, results)
-    rank["third"] = get_nth(3, results)
-    rank["noobs"] = get_from_n_to_end(4, results)
-    return rank
-
-
-def get_nth(n: Any, data: Any) -> list:
-    new_list: list = []
-    for player_data in data:
-        if player_data["rank"] == n:
-            new_list.append(
-                dict(name=player_data["Players"], Clicks=player_data["Clicks"])
-            )
-    return new_list
-
-
-def get_from_n_to_end(n: Any, data: Any) -> list:
-    new_list = []
-    for player_data in data:
-        if player_data["rank"] >= n:
-            new_list.append(
-                dict(name=player_data["Players"], score=player_data["Clicks"])
-            )
-    return new_list
-
-
 def raz(data_dir: str) -> None:
-    raz_pizza_self_vote(data_dir)
     raz_results_per_sport(data_dir)
     raz_results_global(data_dir)
     raz_bets_results(data_dir)
     restore_unplayed_matchs(data_dir)
     raz_medals_per_player(data_dir)
+    raz_killer_chats(data_dir)
+    send_notif("Antoine", "Raz", "Done", data_dir)
 
 
-def raz_pizza_self_vote(data_dir: str) -> None:
-    with open(f"{data_dir}/pizza_tas_dhommes.txt", "w") as file:
-        file.write("")
-
+def raz_killer_chats(data_dir: str) -> None:
+    os.system(f"rm {data_dir}/chat/killer/*.txt")
 
 def raz_results_per_sport(data_dir: str) -> None:
     year = str(datetime.date.today().year)
@@ -310,17 +178,9 @@ def raz_medals_per_player(data_dir: str) -> None:
         data["silver_medals"]["sports"] = []
         data["bronze_medals"]["number"] = 0
         data["bronze_medals"]["sports"] = []
+        data["points"] = 0
         with open(f"{data_dir}/results/athletes/{player}.json", "w") as file:
             json.dump(data, file)
-
-
-def partially_clean_clicker(data_dir: str) -> None:
-    with open(f"{data_dir}/teams/Clicker.json", "r") as file:
-        data = json.load(file)
-        for player in data:
-            player["Clicks"] = int(player["Clicks"] / 5)
-    with open(f"{data_dir}/teams/Clicker.json", "w") as file:
-        json.dump(data, file)
 
 
 def test(data_dir: str) -> None:

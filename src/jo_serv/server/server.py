@@ -389,6 +389,7 @@ def create_server(data_dir: str) -> Flask:
         for player in players_list():
             generate_event_list(player, data_dir)
         generate_can_be_added_list(sport, data_dir)
+        os.system(f"cp {data_dir}/teams/{sport}*.json {data_dir}/teams/save/")
         return Response(response="fdp", status=200)
 
     @app.route("/bets/<path:name>", methods=["GET", "POST"])

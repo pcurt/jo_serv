@@ -1558,10 +1558,11 @@ def kill_player(
             if counter_kill:
                 mission = victim["mission"]
                 victim["mission"] = "Contre kill"
-                dead = player
+            dead = player
         if player_found and player["is_alive"]:
             if give_credit:
-                victim["mission"] += f': {player["how_to_kill"]}'
+                if counter_kill:
+                    victim["mission"] += f': {player["how_to_kill"]}'
                 dead["how_to_kill"] = victim["mission"]
                 player["kills"].append(victim)
                 if counter_kill:
@@ -1745,3 +1746,14 @@ def send_poke(data_dir: str, username: str, other_user: str) -> bool:
         json.dump(data, file)
     send_notif(other_user, "Poke", f"{username} vous a envoyé un poke", data_dir)
     return True
+
+
+def calculate_poke_ranks(data_dir: str) -> None:
+    with open(f"{data_dir}/poke.json", "r") as file:
+        data = json.load(file)
+    pokes = sorted(data["pokes"], key=lambda i: i["score"])  # type: ignore
+    pokes.reverse()
+    rank = dict(first=pokes[0], second=pokes[1], third=pokes[2])
+    data["rank"] = rank
+    with open(f"{data_dir}/poke.json", "w") as file:
+        json.dump(data, file)

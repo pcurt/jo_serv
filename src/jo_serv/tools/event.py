@@ -2,13 +2,11 @@ import datetime
 import json
 import logging
 import os
-import shutil
 import time
 from typing import Any
 
 from jo_serv.tools.tools import (
     activities_list,
-    calculate_rank_clicker,
     players_list,
     send_notif,
 )

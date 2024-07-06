@@ -17,13 +17,9 @@ from jo_serv.server.server import create_server
 from jo_serv.tools.canva import canva_png_creator
 from jo_serv.tools.event import event_handler
 from jo_serv.tools.shifumi import shifumi_process
-from jo_serv.tools.tools import (
-    create_empty_bet_files,
-    generate_killer,
-    increase_canva_size,
-    update_global_bets_results,
-    update_global_results,
-)
+from jo_serv.tools.killer import generate_killer
+from jo_serv.tools.match_mgmt import update_global_bets_results, update_global_results
+from jo_serv.tools.tools import create_empty_bet_files, increase_canva_size
 
 
 # Define this function as a the main command entrypoint

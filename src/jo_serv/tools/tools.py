@@ -76,152 +76,36 @@ def generate_account(data_dir: str, user: str) -> None:
         json.dump(dict(users=users), file)
 
 
-def users_list() -> list:
-    users = players_list()
+def users_list(data_dir: str) -> list:
+    users = players_list(data_dir)
     users.append("Willy")
     return users
 
 
-def activities_list(include_date: bool = False) -> Any:
+def activities_list(data_dir: str, include_date: bool = False) -> Any:
+    with open(f"{data_dir}/planning.json", "r") as file:
+        data = json.load(file)
     if include_date:
-        return {
-            "Soirée d'ouverture!": ["2023-07-13T20:00:00", "2023-07-14T09:30:00"],
-            "Trail": [
-                "2023-07-14T09:30:00",
-                "2023-07-14T11:00:00",
-                "2023-07-14T09:25:00",
-            ],
-            "Volley": [
-                "2023-07-14T11:00:00",
-                "2023-07-14T13:00:00",
-                "2023-07-14T10:55:00",
-            ],
-            "Pizza": [
-                "2023-07-14T13:00:00",
-                "2023-07-14T15:00:00",
-                "2023-07-14T12:55:00",
-            ],
-            "Waterpolo": [
-                "2023-07-14T14:00:00",
-                "2023-07-14T15:00:00",
-                "2023-07-14T13:55:00",
-            ],
-            "SpikeBall": [
-                "2023-07-14T15:00:00",
-                "2023-07-14T18:00:00",
-                "2023-07-14T14:55:00",
-            ],
-            "Blindtest": [
-                "2023-07-14T15:00:00",
-                "2023-07-14T18:00:00",
-                "2023-07-14T14:55:00",
-            ],
-            "Orientation": [
-                "2023-07-14T18:00:00",
-                "2023-07-14T20:00:00",
-                "2023-07-14T19:55:00",
-            ],
-            "Beerpong": [
-                "2023-07-15T10:00:00",
-                "2023-07-15T19:00:00",
-                "2023-07-15T09:55:00",
-            ],
-            "Crepes": [
-                "2023-07-15T13:00:00",
-                "2023-07-15T14:00:00",
-                "2023-07-15T12:55:00",
-            ],
-            "Flechette": [
-                "2023-07-15T14:00:00",
-                "2023-07-15T16:00:00",
-                "2023-07-15T13:55:00",
-            ],
-            "Tong": [
-                "2023-07-15T14:00:00",
-                "2023-07-15T16:00:00",
-                "2023-07-15T13:55:00",
-            ],
-            "Babyfoot": [
-                "2023-07-15T14:00:00",
-                "2023-07-15T16:00:00",
-                "2023-07-15T13:55:00",
-            ],
-            "Slackline": [
-                "2023-07-15T14:00:00",
-                "2023-07-15T16:00:00",
-                "2023-07-15T13:55:00",
-            ],
-            "Larmina": [
-                "2023-07-15T16:00:00",
-                "2023-07-15T18:00:00",
-                "2023-07-15T15:55:00",
-            ],
-            "Ventriglisse": [
-                "2023-07-15T18:00:00",
-                "2023-07-15T19:00:00",
-                "2023-07-15T17:55:00",
-            ],
-            "100mRicard": [
-                "2023-07-15T23:00:00",
-                "2023-07-16T04:00:00",
-                "2023-07-15T22:55:00",
-            ],
-            "Rangement": ["2023-07-16T11:00:00", "2023-07-16T14:00:00"],
-            "Petanque": [
-                "2023-07-16T14:00:00",
-                "2023-07-16T15:30:00",
-                "2023-07-16T13:55:00",
-            ],
-            "Remise des prix": ["2023-07-16T15:30:00", "2023-07-16T17:30:00"],
-        }
-    return [
-        "Soirée d'ouverture!",
-        "Trail",
-        "Volley",
-        "Pizza",
-        "Waterpolo",
-        "SpikeBall",
-        "Blindtest",
-        "Orientation",
-        "Beerpong",
-        "Crepes",
-        "Flechette",
-        "Tong",
-        "Babyfoot",
-        "Slackline",
-        "Larmina",
-        "Ventriglisse",
-        "100mRicard",
-        "Rangement",
-        "Petanque",
-        "Remise des prix",
-    ]
+        return data
+    activities = []
+    for name in data:
+        activities.append(name)
+    return activities
 
 
-def sports_list() -> list:
-    return [
-        "Trail",
-        "Volley",
-        "Pizza",
-        "Waterpolo",
-        "SpikeBall",
-        "Blindtest",
-        "Orientation",
-        "Beerpong",
-        "Flechette",
-        "Tong",
-        "Babyfoot",
-        "Slackline",
-        "Larmina",
-        "Ventriglisse",
-        "100mRicard",
-        "Petanque",
-    ]
+def sports_list(data_dir: str) -> list:
+    with open(f"{data_dir}/planning.json", "r") as file:
+        data = json.load(file)
+    activities = []
+    for name in data:
+        if data[name][2] == "SportDetails":
+            activities.append(name)
+    return activities
 
 
-def sort_list(old_list: list) -> list:
+def sort_list(data_dir: str, old_list: list) -> list:
     new_list: list = []
-    for activity in activities_list():
+    for activity in activities_list(data_dir):
         if activity in old_list:
             new_list.append(activity)
     return new_list
@@ -234,8 +118,8 @@ def generate_event_list(name: str, data_dir: str) -> None:
     parse_json(name, "_playoff.json", playing_list, f"{data_dir}/teams")
     parse_json(name, "_poules.json", playing_list, f"{data_dir}/teams")
     get_arbitre_list(name, arbitre_list, data_dir)
-    arbitre_list = sort_list(arbitre_list)
-    playing_list = sort_list(playing_list)
+    arbitre_list = sort_list(data_dir, arbitre_list)
+    playing_list = sort_list(data_dir, playing_list)
     print(arbitre_list)
     print(playing_list)
     with open(f"{data_dir}/athletes/{name}.json", "w") as athlete_file:
@@ -385,11 +269,11 @@ def add_events_to_handler(data_dir: str) -> None:
     with open(f"{data_dir}/events.json", "r") as file:
         data = json.load(file)
     events = data["Events"]
-    activities = activities_list(True)
+    activities = activities_list(data_dir, True)
     for activity in activities:
         new_event_start = {
             "name": f"Start {activity}",
-            "date": activities[activity][0],
+            "date": activities[activity][0].split("+")[0],
             "callback": "notif_start_sport",
             "args": {"sport": activity},
             "done": False,
@@ -397,16 +281,16 @@ def add_events_to_handler(data_dir: str) -> None:
         events.append(new_event_start)
         new_event_end = {
             "name": f"End {activity}",
-            "date": activities[activity][1],
+            "date": activities[activity][1].split("+")[0],
             "callback": "notif_end_sport",
             "args": {"sport": activity},
             "done": False,
         }
         events.append(new_event_end)
-        if len(activities[activity]) == 3:
+        if (activities[activity][2] == "SportDetails"):
             new_event_lock = {
                 "name": f"Lock bets {activity}",
-                "date": activities[activity][2],
+                "date": activities[activity][0].split("+")[0],
                 "callback": "lock_bets_sport",
                 "args": {"sport": activity},
                 "done": False,
@@ -492,7 +376,7 @@ def get_non_registered(sport: str, data_dir: str) -> list:
     with open(f"{data_dir}/teams/{sport}.json", "r") as file:
         data = json.load(file)
         non_registered = []
-        for player in players_list():
+        for player in players_list(data_dir):
             if not any(player in team["Players"] for team in data["Teams"]):
                 non_registered.append(player)
     return non_registered

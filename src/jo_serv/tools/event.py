@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from jo_serv.tools.tools import (
-    activities_list,
+    sports_list,
     players_list,
     send_notif,
 )
@@ -127,7 +127,7 @@ def raz_killer_chats(data_dir: str) -> None:
 
 def raz_results_per_sport(data_dir: str) -> None:
     year = str(datetime.date.today().year)
-    for sport in activities_list()[1:-2]:
+    for sport in sports_list(data_dir):
         if os.path.exists(f"{data_dir}/results/sports/{sport}_summary.json"):
             with open(f"{data_dir}/results/sports/{sport}_summary.json", "r") as file:
                 data = json.load(file)
@@ -167,18 +167,19 @@ def restore_unplayed_matchs(data_dir: str) -> None:
 
 
 def raz_medals_per_player(data_dir: str) -> None:
-    for player in players_list():
-        with open(f"{data_dir}/results/athletes/{player}.json", "r") as file:
-            data = json.load(file)
-        data["gold_medals"]["number"] = 0
-        data["gold_medals"]["sports"] = []
-        data["silver_medals"]["number"] = 0
-        data["silver_medals"]["sports"] = []
-        data["bronze_medals"]["number"] = 0
-        data["bronze_medals"]["sports"] = []
-        data["points"] = 0
-        with open(f"{data_dir}/results/athletes/{player}.json", "w") as file:
-            json.dump(data, file)
+    for player in players_list(data_dir):
+        if (os.path.exists(f"{data_dir}/results/athletes/{player}.json")):
+            with open(f"{data_dir}/results/athletes/{player}.json", "r") as file:
+                data = json.load(file)
+            data["gold_medals"]["number"] = 0
+            data["gold_medals"]["sports"] = []
+            data["silver_medals"]["number"] = 0
+            data["silver_medals"]["sports"] = []
+            data["bronze_medals"]["number"] = 0
+            data["bronze_medals"]["sports"] = []
+            data["points"] = 0
+            with open(f"{data_dir}/results/athletes/{player}.json", "w") as file:
+                json.dump(data, file)
 
 
 def test(data_dir: str) -> None:

@@ -421,7 +421,7 @@ def create_server(data_dir: str) -> Flask:
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(data, file, ensure_ascii=False)
         adapt_bet_file(data_dir, sport)
-        for player in players_list():
+        for player in players_list(data_dir):
             generate_event_list(player, data_dir)
         generate_can_be_added_list(sport, data_dir)
         os.system(f"cp {data_dir}/teams/{sport}*.json {data_dir}/teams/save/")
@@ -817,6 +817,21 @@ def create_server(data_dir: str) -> Flask:
         killer_mutex.release()
         return Response(response=json.dumps(ret), status=200)
 
+    @app.route("/update-rangement", methods=["POST"])
+    def update_rangement() -> Response:
+        try:
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            tasks = json_data.get("tasks")
+            tasks_list = []
+            for task in tasks:
+                if task["title"] != "":
+                    tasks_list.append(task)
+            with open(f"{data_dir}/teams/Rangement.json", "w") as file:
+                json.dump(tasks_list, file)
+            return Response(response="ok", status=200)
+        except:
+            return Response(response="Error on update rangement", status=404)
 
     @app.route("/shifumi", methods=["POST"])
     def shifumi() -> Response:

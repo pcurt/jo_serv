@@ -14,6 +14,7 @@ from jo_serv.tools.excel_mgmt import (
     store_infos,
     )
 from jo_serv.tools.match_mgmt import team_to_next_step
+from jo_serv.tools.tools import players_list, generate_account, generate_event_list, generate_can_be_added_list, create_empty_bet_files
 
 def parse_excel(data_dir: str):
     path = os.path.join(f"{data_dir}/JO_2024.xlsx")
@@ -150,4 +151,11 @@ def parse_exported_excel(data_dir: str):
         status_info = dict(status=status, states=states, arbitre=[""], rules=sport_config["rules"], sportname=file_name.replace("_status.json", ""))
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(status_info, file, ensure_ascii=False)
+        sport_name = file_name.replace("_status.json", "")
+        generate_can_be_added_list(sport_name, data_dir)
 
+    create_empty_bet_files(data_dir)
+    players = players_list(data_dir)
+    for player in players:
+        generate_account(data_dir, player)
+        generate_event_list(player, data_dir)

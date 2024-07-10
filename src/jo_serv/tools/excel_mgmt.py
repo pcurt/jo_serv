@@ -4,6 +4,7 @@ import string
 import json
 import random
 
+
 def create_empty_dict(excel_sheet: Any) -> dict:
     athletes: dict = dict()
     for sheet in excel_sheet:

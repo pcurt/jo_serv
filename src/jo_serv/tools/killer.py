@@ -4,7 +4,8 @@ import logging
 import datetime
 import random
 from jo_serv.tools.tools import send_notif
-from jo_serv.tools.match_mgmt import add_new_results, update_global_results 
+from jo_serv.tools.match_mgmt import add_new_results, update_global_results
+from typing import Any
 
 class AlreadyDeadError(Exception):
     pass
@@ -18,6 +19,10 @@ class NoKillerError(Exception):
     pass
 
 
+class PlayerNotFoundError(Exception):
+    pass
+
+
 def killer_players(data_dir: str) -> list:
     with open(f"{data_dir}/athletes/All.json", "r") as file:
         data = json.load(file)
@@ -28,7 +33,7 @@ def killer_players(data_dir: str) -> list:
     return to_return
 
 
-def switch_state_killer(data_dir: str, name: str, state: bool):
+def switch_state_killer(data_dir: str, name: str, state: bool) -> None:
     with open(f"{data_dir}/athletes/All.json", "r") as file:
         data = json.load(file)
     for player in data:
@@ -40,8 +45,8 @@ def switch_state_killer(data_dir: str, name: str, state: bool):
 
 def generate_killer(data_dir: str) -> bool:
     logging.info("Starting killer")
-    data = get_killer_data(data_dir)
-    if data["started"]:
+    old_data = get_killer_data(data_dir)
+    if old_data["started"]:
         logging.info("Killer already started")
         raise AlreadyStartedError
     data: dict = dict()
@@ -50,7 +55,7 @@ def generate_killer(data_dir: str) -> bool:
     data["arbitre"] = ["Fabien", "Bifteck"]
     data["participants"] = []
     data["start_date"] = datetime.datetime.now().timestamp()
-    for player in killer_players():
+    for player in killer_players(data_dir):
         data["participants"].append(
             {
                 "name": player,
@@ -92,15 +97,16 @@ def compute_lifetime(time_alive: float) -> str:
     return f"{days}j {hours}h {minutes}min {seconds}s"
 
 
-def find_player_index(data_dir: str, name: str) -> int:
+def find_player_index(data_dir: str, name: str) -> Any:
     data = get_killer_data(data_dir)
     participants = data["participants"]
     for player in participants:
         if player["name"] == name:
             return player["index"]
+    raise PlayerNotFoundError()
 
 
-def find_killer_index(data_dir: str, player_index: int, counter_kill: bool) -> int:
+def find_killer_index(data_dir: str, player_index: int, counter_kill: bool) -> Any:
     data = get_killer_data(data_dir)
     participants = data["participants"]
     reordered_list = participants[player_index+1:] + participants[:player_index]
@@ -112,18 +118,18 @@ def find_killer_index(data_dir: str, player_index: int, counter_kill: bool) -> i
     raise NoKillerError()
 
 
-def find_victim(data_dir: str, player_index: int) -> int:
+def find_victim(data_dir: str, player_index: int) -> Any:
     return find_killer_index(data_dir, player_index, True)
 
 
-def get_killer_data(data_dir: str) -> dict:
+def get_killer_data(data_dir: str) -> Any:
     with open(f"{data_dir}/killer/killer.json", "r") as f:
         data = json.load(f)
     data["participants"] = sorted(data["participants"], key=lambda d: d["index"])  # type: ignore
     return data
 
 
-def save_killer_data(data_dir: str, data: dict):
+def save_killer_data(data_dir: str, data: dict) -> None:
     with open(f"{data_dir}/killer/killer.json", "w") as f:
         json.dump(data, f)
 
@@ -133,18 +139,18 @@ def kill_player(data_dir: str, index: int, counter_kill: bool) -> dict:
     name = data["participants"][index]["name"]
     logging.info(f"Trying to kill {name}")
     rank = count_still_alive(data_dir)
-    if data["participants"][index]["is_alive"] == False:
+    if data["participants"][index]["is_alive"] is False:
         logging.info(f"Player: {name} is already dead")
-        raise AlreadyDeadError() 
+        raise AlreadyDeadError()
 
     data["participants"][index]["is_alive"] = False
     data["participants"][index]["rank"] = rank
     data["participants"][index]["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
     time_alive = datetime.datetime.now().timestamp() - data["start_date"]
     data["participants"][index]["lifetime"] = compute_lifetime(time_alive)
-    
+
     save_killer_data(data_dir, data)
-    
+
     victim = {
         "name": name,
         "mission": data["participants"][index]["how_to_kill"],
@@ -156,7 +162,7 @@ def kill_player(data_dir: str, index: int, counter_kill: bool) -> dict:
     return victim
 
 
-def assign_kill(data_dir: str, victim: dict, index: int):
+def assign_kill(data_dir: str, victim: dict, index: int) -> None:
     data = get_killer_data(data_dir)
     data["participants"][index]["kills"].append(victim)
     save_killer_data(data_dir, data)
@@ -172,21 +178,21 @@ def count_still_alive(data_dir: str) -> int:
     return living
 
 
-def end_killer(data_dir: str):
+def end_killer(data_dir: str) -> None:
     data = get_killer_data(data_dir)
     data["over"] = True
     save_killer_data(data_dir, data)
     generate_killer_results(data_dir, False)
 
 
-def change_mission(data_dir: str, name: str, new_mission: str):
+def change_mission(data_dir: str, name: str, new_mission: str) -> None:
     player_index = find_player_index(data_dir, name)
     data = get_killer_data(data_dir)
     data["participants"][player_index]["how_to_kill"] = new_mission
     save_killer_data(data_dir, data)
 
 
-def update_missions(data_dir: str, missions: list):
+def update_missions(data_dir: str, missions: list) -> None:
     new_missions = []
     for mission in missions:
         if mission["title"]:
@@ -195,79 +201,7 @@ def update_missions(data_dir: str, missions: list):
         json.dump(new_missions, file)
 
 
-def kill_player_old(
-    data_dir: str, name: str, counter_kill: bool = False, give_credit: bool = True
-) -> bool:
-    f = open(data_dir + "/killer/killer.json", "r")
-    data = json.load(f)
-    data["participants"] = sorted(data["participants"], key=lambda d: d["index"])  # type: ignore
-    rank = 0
-    for player in data["participants"]:
-        if player["is_alive"]:
-            rank += 1
-    player_found = False
-    if counter_kill:
-        pool = cycle(data["participants"])
-    else:
-        pool = cycle(reversed(data["participants"]))
-    for player in pool:
-        if player["name"] == name:
-            player_found = True
-            player["is_alive"] = False
-            player["rank"] = rank
-            player["death"] = datetime.datetime.now().strftime("Le %d/%m à %H:%M")
-            time_alive = datetime.datetime.now().timestamp() - data["start_date"]
-            player["lifetime"] = compute_lifetime(time_alive)
-            victim = {
-                "name": name,
-                "mission": player["how_to_kill"],
-                "date": player["death"],
-            }
-            if counter_kill:
-                mission = victim["mission"]
-                victim["mission"] = "Contre kill"
-            dead = player
-        if player_found and player["is_alive"]:
-            if give_credit:
-                if counter_kill:
-                    victim["mission"] += f': {player["how_to_kill"]}'
-                dead["how_to_kill"] = victim["mission"]
-                player["kills"].append(victim)
-                if counter_kill:
-                    player["how_to_kill"] = mission
-            if rank == 2:
-                send_notif(
-                    "all",
-                    "Fin du killer",
-                    "Le killer est terminé, connectez vous pour voir les résultats",
-                    data_dir,
-                )
-                player["rank"] = 1
-                data["over"] = True
-            with open(f"{data_dir}/killer/killer.json", "w") as f:
-                json.dump(data, f)
-            if data["over"]:
-                generate_killer_results(data_dir, True)
-                update_global_results(data_dir)
-            else:
-                if counter_kill:
-                    player_found = False
-                    pool2 = cycle(reversed(data["participants"]))
-                    for player in pool2:
-                        if player_found and player["is_alive"]:
-                            print(f'sending to {player["name"]}')
-                            send_notif(player["name"],
-                                    "Killer",
-                                    f"Attention {name} s'est fait contre kill, une nouvelle victime t'as été assignée",
-                                    data_dir)
-                            return True
-                        if player["name"] == name:
-                            player_found = True
-            return True
-    return False
-
-
-def set_killer_ranks(data_dir: str, players: list):
+def set_killer_ranks(data_dir: str, players: list) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     if not (all(player["rank"] == 0 for player in players)):
@@ -280,7 +214,7 @@ def set_killer_ranks(data_dir: str, players: list):
     save_killer_data(data_dir, data)
 
 
-def generate_survie_results(data_dir: str):
+def generate_survie_results(data_dir: str) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     teams: dict = dict(Teams=[])
@@ -294,7 +228,9 @@ def generate_survie_results(data_dir: str):
 
 
 def generate_killer_results(data_dir: str, give_medals: bool) -> None:
-    set_killer_ranks(data_dir)
+    data = get_killer_data(data_dir)
+    players = data["participants"]
+    set_killer_ranks(data_dir, players)
 
     if not give_medals:
         return
@@ -302,7 +238,7 @@ def generate_killer_results(data_dir: str, give_medals: bool) -> None:
     generate_murders_results(data_dir)
 
 
-def generate_murders_results(data_dir: str):
+def generate_murders_results(data_dir: str) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     for player in players:
@@ -350,5 +286,5 @@ def random_kills() -> None:
     random.shuffle(players)
     while len(players) > 1:
         name = players.pop()["name"]
-        kill_player("src/data_serv", name)
+        kill_player("src/data_serv", name, False)
         print(f"killed {name}")

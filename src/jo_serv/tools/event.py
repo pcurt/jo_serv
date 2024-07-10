@@ -125,6 +125,7 @@ def raz(data_dir: str) -> None:
 def raz_killer_chats(data_dir: str) -> None:
     os.system(f"rm {data_dir}/chat/killer/*.txt")
 
+
 def raz_results_per_sport(data_dir: str) -> None:
     year = str(datetime.date.today().year)
     for sport in sports_list(data_dir):

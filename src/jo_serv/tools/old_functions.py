@@ -1,3 +1,7 @@
+import json
+from jo_serv.tools.tools import players_list, send_notif
+from typing import Any
+
 
 def calculate_rank_clicker(clicker: list, data_dir: str) -> None:
 
@@ -33,7 +37,7 @@ def calculate_rank_clicker(clicker: list, data_dir: str) -> None:
 
 
 def rm_players_from_his_pizza_list(data_dir: str) -> None:
-    for player in players_list():
+    for player in players_list(data_dir):
         overwrite = False
         with open(f"{data_dir}/teams/Pizza/{player}.json", "r") as rfile:
             print(player)

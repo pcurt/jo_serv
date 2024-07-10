@@ -379,7 +379,6 @@ def create_server(data_dir: str) -> Flask:
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(dict(Teams=new_teams), file, ensure_ascii=False)
         logger.info("teams updated")
-            
         sport_config = get_sport_config(file_name, data_dir)
         if sport_config["Type"] == "Table":
             table = generate_table(new_teams, sport_config["Teams per match"])
@@ -657,7 +656,6 @@ def create_server(data_dir: str) -> Flask:
         except Exception:
             return Response(response="Can't find requested photo", status=404)
 
-
     @app.route("/killer-start", methods=["POST"])
     def killer_start() -> Response:
         logging.info("Call on start killer")
@@ -668,10 +666,9 @@ def create_server(data_dir: str) -> Flask:
                 return Response(response="Game started", status=200)
             killer_mutex.release()
             return Response(response="Can't start killer", status=404)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Can't start killer", status=404)
-
 
     @app.route("/killer-end", methods=["POST"])
     def killer_end() -> Response:
@@ -681,13 +678,12 @@ def create_server(data_dir: str) -> Flask:
             data = get_killer_data(data_dir)
             data["over"] = True
             save_killer_data(data_dir, data)
-            generate_killer_results(data_dir)
+            generate_killer_results(data_dir, False)
             killer_mutex.release()
             return Response(response="Killer over", status=200)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Can't stop killer", status=404)
-        
 
     @app.route("/killer-change-mission", methods=["POST"])
     def killer_change_mission() -> Response:
@@ -700,10 +696,9 @@ def create_server(data_dir: str) -> Flask:
             update_missions(data_dir, missions)
             killer_mutex.release()
             return Response(response="Missions updated", status=200)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Can't update missions", status=404)
-
 
     @app.route("/killer-register", methods=["POST"])
     def killer_register() -> Response:
@@ -720,10 +715,9 @@ def create_server(data_dir: str) -> Flask:
             switch_state_killer(data_dir, name, registering)
             killer_mutex.release()
             return Response(response="Succesfully changed registration", status=200)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Can't change registration", status=404)
-
 
     @app.route("/killer-update-missions", methods=["POST"])
     def killer_update_missions() -> Response:
@@ -737,10 +731,9 @@ def create_server(data_dir: str) -> Flask:
             change_mission(data_dir, name, mission)
             killer_mutex.release()
             return Response(response="Mission changed", status=200)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Can't change player mission", status=404)
-        
 
     @app.route("/killer-kill", methods=["POST"])
     def killer_kill() -> Response:
@@ -761,12 +754,11 @@ def create_server(data_dir: str) -> Flask:
                 assign_kill(data_dir, victim, killer_index)
             if count_still_alive(data_dir) == 1:
                 end_killer(data_dir)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Error on killer", status=404)
         killer_mutex.release()
         return Response(response=f"Killed {name}", status=200)
-
 
     @app.route("/killer-info/<path:name>", methods=["GET"])
     def killer_info(name: str) -> Response:
@@ -811,7 +803,7 @@ def create_server(data_dir: str) -> Flask:
                 with open(f"{data_dir}/killer/killer_missions.json", "r") as f:
                     ret["missions"] = json.load(f)
                 ret["participants"] = killer_players(data_dir)
-        except:
+        except Exception:
             killer_mutex.release()
             return Response(response="Error on killer", status=404)
         killer_mutex.release()
@@ -830,7 +822,7 @@ def create_server(data_dir: str) -> Flask:
             with open(f"{data_dir}/teams/Rangement.json", "w") as file:
                 json.dump(tasks_list, file)
             return Response(response="ok", status=200)
-        except:
+        except Exception:
             return Response(response="Error on update rangement", status=404)
 
     @app.route("/shifumi", methods=["POST"])
@@ -896,7 +888,7 @@ def create_server(data_dir: str) -> Flask:
                     active_players.append(active_player)
                 # logger.info(f"active_players : {active_players}")
                 # logger.info(f"round_in_progress : {round_in_progress}")
-                 
+
                 specs = []
                 for player, params in data.items():
                     if time.time() - 2 < params.get("time"):
@@ -955,7 +947,7 @@ def create_server(data_dir: str) -> Flask:
                             json.dump(data, file)
                     finally:
                         connection_mutex.release()
-                    
+
                     return Response(response="Ok", status=200)
             data["users"].append(dict(name=username, last_online=time.time(), screen=screen))
             try:
@@ -979,7 +971,7 @@ def create_server(data_dir: str) -> Flask:
                 if user["last_online"] + 5 > time.time():
                     online_users.append(dict(name=user["name"], screen=user["screen"]))
             return make_response(dict(online=online_users))
-            
+
         return Response(response="Error on lifestate", status=404)
 
     @app.route("/annonce", methods=["POST", "GET"])
@@ -993,11 +985,10 @@ def create_server(data_dir: str) -> Flask:
         if request.method == "GET":
             with open(f"{data_dir}/annonce.txt", "r") as file:
                 data = file.read()
-                
-            return make_response(data)
-            
-        return Response(response="Error on annonce", status=404)
 
+            return make_response(data)
+
+        return Response(response="Error on annonce", status=404)
 
     @app.route("/palmares/<path:name>", methods=["GET"])
     def palmares(name: str) -> Any:
@@ -1007,7 +998,6 @@ def create_server(data_dir: str) -> Flask:
         except Exception:
             return Response(response="Can't find requested palmares", status=404)
 
-
     @app.route("/planning", methods=["GET"])
     def planning() -> Any:
         logger.info("Get on : /planning")
@@ -1015,6 +1005,5 @@ def create_server(data_dir: str) -> Flask:
             return send_file(f"{data_dir}/planning.json")
         except Exception:
             return Response(response="Can't find planning", status=404)
-
 
     return app

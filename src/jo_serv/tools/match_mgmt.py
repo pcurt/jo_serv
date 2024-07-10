@@ -6,7 +6,8 @@ import datetime
 import os
 from typing import Any, Tuple
 from jo_serv.tools.excel_mgmt import generate_table
-from jo_serv.tools.tools import send_notif, players_list, users_list
+from jo_serv.tools.tools import send_notif, players_list
+
 
 def team_to_next_step(sport: str, match_id: int, data_dir: str) -> None:
     with open(f"{data_dir}/teams/{sport}_playoff.json", "r") as file:
@@ -452,7 +453,7 @@ def update_global_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("update_global_results")
     results = []
-    for athlete in players_list():
+    for athlete in players_list(data_dir):
         logger.info(f"Update player {athlete}")
         result = update_results(athlete, data_dir)
         result["name"] = athlete
@@ -489,7 +490,7 @@ def update_global_bets_results(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("update_global_bets_results")
     results = []
-    for athlete in users_list():
+    for athlete in players_list(data_dir):
         logger.info(f"Update player {athlete}")
         result = get_bet_score(athlete, data_dir)
         results.append(result)

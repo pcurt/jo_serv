@@ -76,12 +76,6 @@ def generate_account(data_dir: str, user: str) -> None:
         json.dump(dict(users=users), file)
 
 
-def users_list(data_dir: str) -> list:
-    users = players_list(data_dir)
-    users.append("Willy")
-    return users
-
-
 def activities_list(data_dir: str, include_date: bool = False) -> Any:
     with open(f"{data_dir}/planning.json", "r") as file:
         data = json.load(file)
@@ -246,7 +240,7 @@ def update_bet_file(data_dir: str, sport: str, username: str, bets: str) -> None
             data[idx]["TotalVotes"] = len(data[idx]["Votes"])
     with open(f"{data_dir}/bets/{sport}.json", "w") as f:
         json.dump(dict(Teams=data), f, ensure_ascii=False)
-        
+
 
 def adapt_bet_file(data_dir: str, sport: str) -> None:
     with open(f"{data_dir}/bets/{sport}.json", "r") as bets_file:
@@ -406,8 +400,8 @@ def toggle_lock_bets(sport: str, data_dir: str) -> None:
         json.dump(data, file, ensure_ascii=False)
 
 
-def get_palmares(data_dir: str, name: str):
-    sport_list = []
+def get_palmares(data_dir: str, name: str) -> dict:
+    sport_list: list[str] = []
     palmares = dict()
     parse_json(name, "_summary.json", sport_list, f"{data_dir}/results/sports", "votes")
     for sport in sport_list:

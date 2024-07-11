@@ -413,3 +413,14 @@ def get_palmares(data_dir: str, name: str) -> dict:
                 if re.findall(f"\\b{name}\\b", team["Players"]):
                     palmares[sport][year] = team["rank"]
     return palmares
+
+
+def populate_rangement(data_dir: str) -> None:
+    with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+        data = json.load(file)
+    players = []
+    for player in players_list(data_dir):
+        players.append(dict(name=player, busy=False, score=0))
+    data["Players"] = players
+    with open(f"{data_dir}/teams/Rangement.json", "w") as file:
+        json.dump(data, file)

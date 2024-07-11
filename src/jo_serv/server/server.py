@@ -73,6 +73,7 @@ size_mutex = Lock()
 connection_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 killer_mutex = Lock()
+rangement_mutex = Lock()
 PARTY_STATUS = "NOT_STARTED"
 
 
@@ -809,20 +810,51 @@ def create_server(data_dir: str) -> Flask:
         killer_mutex.release()
         return Response(response=json.dumps(ret), status=200)
 
+    @app.route("/rangement", methods=["GET"])
+    def rangement() -> Response:
+        try:
+            rangement_mutex.acquire()
+            with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+                data = json.load(file)
+            rangement_mutex.release()
+            return Response(response=json.dumps(data), status=200)
+        except Exception:
+            rangement_mutex.release()
+            return Response(response="Error on get rangement", status=404)
+
     @app.route("/update-rangement", methods=["POST"])
     def update_rangement() -> Response:
         try:
+            rangement_mutex.acquire()
             decode_data = request.data.decode("utf-8")
             json_data = json.loads(decode_data)
             tasks = json_data.get("tasks")
             tasks_list = []
+            busy_people = []
             for task in tasks:
+                logging.info(task)
                 if task["title"] != "":
                     tasks_list.append(task)
+                    if task["state"] == 1:
+                        for participant in task["participants"]:
+                            busy_people.append(participant)
+            logging.info(busy_people)
+            with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+                data = json.load(file)
+            data["tasks"] = tasks_list
+            for player in data["Players"]:
+                player["busy"] = player["name"] in busy_people
+                player["score"] = 0
+                for task in tasks_list:
+                    if task["state"] == 2 and player["name"] in task["participants"]:
+                        player["score"] += task["points"]
+
             with open(f"{data_dir}/teams/Rangement.json", "w") as file:
-                json.dump(tasks_list, file)
+                json.dump(data, file)
+            rangement_mutex.release()
             return Response(response="ok", status=200)
         except Exception:
+            rangement_mutex.release()
             return Response(response="Error on update rangement", status=404)
 
     @app.route("/shifumi", methods=["POST"])

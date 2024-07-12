@@ -424,3 +424,14 @@ def populate_rangement(data_dir: str) -> None:
     data["Players"] = players
     with open(f"{data_dir}/teams/Rangement.json", "w") as file:
         json.dump(data, file)
+
+
+def clear_rangement(data_dir: str) -> None:
+    with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+        data = json.load(file)
+    for task in data["tasks"]:
+        task["state"] = 0
+        task["participants"] = []
+    with open(f"{data_dir}/teams/Rangement.json", "w") as file:
+        json.dump(data, file)
+    populate_rangement(data_dir)

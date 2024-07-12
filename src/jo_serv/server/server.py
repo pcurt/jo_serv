@@ -22,6 +22,7 @@ from jo_serv.tools.killer import (
     generate_killer,
     generate_killer_results,
     get_killer_data,
+    get_mission,
     get_killer_player_info,
     kill_player,
     killer_players,
@@ -686,9 +687,9 @@ def create_server(data_dir: str) -> Flask:
             killer_mutex.release()
             return Response(response="Can't stop killer", status=404)
 
-    @app.route("/killer-change-mission", methods=["POST"])
-    def killer_change_mission() -> Response:
-        logging.info("Call on change mission")
+    @app.route("/killer-update-missions", methods=["POST"])
+    def killer_update_missions() -> Response:
+        logging.info("Call on update missions killer")
         try:
             killer_mutex.acquire()
             decode_data = request.data.decode("utf-8")
@@ -720,16 +721,17 @@ def create_server(data_dir: str) -> Flask:
             killer_mutex.release()
             return Response(response="Can't change registration", status=404)
 
-    @app.route("/killer-update-missions", methods=["POST"])
-    def killer_update_missions() -> Response:
-        logging.info("Call on end killer")
+    @app.route("/killer-change-mission", methods=["POST"])
+    def killer_change_mission() -> Response:
+        logging.info("Call on change mission")
         try:
             killer_mutex.acquire()
             decode_data = request.data.decode("utf-8")
             json_data = json.loads(decode_data)
             name = json_data["name"]
             mission = json_data["mission"]
-            change_mission(data_dir, name, mission)
+            player_index = find_player_index(data_dir, name)
+            change_mission(data_dir, player_index, mission)
             killer_mutex.release()
             return Response(response="Mission changed", status=200)
         except Exception:
@@ -748,11 +750,21 @@ def create_server(data_dir: str) -> Flask:
             if counter_kill:
                 logging.info("It's a counter kill")
             killer_mutex.acquire()
-            player_index = find_player_index(data_dir, name)
-            victim = kill_player(data_dir, player_index, counter_kill)
-            if give_credit:
+            if counter_kill:
+                player_index = find_player_index(data_dir, name)
                 killer_index = find_killer_index(data_dir, player_index, counter_kill)
+                player_mission = get_mission(data_dir, player_index)
+                killer_mission = "Contre killer: " + get_mission(data_dir, killer_index)
+                change_mission(data_dir, player_index, killer_mission)
+                change_mission(data_dir, killer_index, player_mission)
+                victim = kill_player(data_dir, player_index)
                 assign_kill(data_dir, victim, killer_index)
+            else:
+                player_index = find_player_index(data_dir, name)
+                victim = kill_player(data_dir, player_index)
+                if give_credit:
+                    killer_index = find_killer_index(data_dir, player_index, counter_kill)
+                    assign_kill(data_dir, victim, killer_index)
             if count_still_alive(data_dir) == 1:
                 end_killer(data_dir)
         except Exception:
@@ -801,13 +813,15 @@ def create_server(data_dir: str) -> Flask:
                 if data["started"]:
                     ret["participants"] = data["participants"]
                     random.shuffle(ret["participants"])
+                else:
+                    ret["participants"] = killer_players(data_dir)
                 with open(f"{data_dir}/killer/killer_missions.json", "r") as f:
                     ret["missions"] = json.load(f)
-                ret["participants"] = killer_players(data_dir)
         except Exception:
             killer_mutex.release()
             return Response(response="Error on killer", status=404)
         killer_mutex.release()
+        logging.info(ret)
         return Response(response=json.dumps(ret), status=200)
 
     @app.route("/rangement", methods=["GET"])
@@ -847,7 +861,7 @@ def create_server(data_dir: str) -> Flask:
                 player["score"] = 0
                 for task in tasks_list:
                     if task["state"] == 2 and player["name"] in task["participants"]:
-                        player["score"] += task["points"]
+                        player["score"] += task["points"] / len(task["participants"])
 
             with open(f"{data_dir}/teams/Rangement.json", "w") as file:
                 json.dump(data, file)

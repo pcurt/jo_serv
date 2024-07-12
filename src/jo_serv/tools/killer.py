@@ -118,6 +118,12 @@ def find_killer_index(data_dir: str, player_index: int, counter_kill: bool) -> A
     raise NoKillerError()
 
 
+def get_mission(data_dir: str, player_index: int) -> str:
+    data = get_killer_data(data_dir)
+    participants = data["participants"]
+    return participants[player_index]["how_to_kill"]
+
+
 def find_victim(data_dir: str, player_index: int) -> Any:
     return find_killer_index(data_dir, player_index, True)
 
@@ -134,7 +140,7 @@ def save_killer_data(data_dir: str, data: dict) -> None:
         json.dump(data, f)
 
 
-def kill_player(data_dir: str, index: int, counter_kill: bool) -> dict:
+def kill_player(data_dir: str, index: int) -> dict:
     data = get_killer_data(data_dir)
     name = data["participants"][index]["name"]
     logging.info(f"Trying to kill {name}")
@@ -157,8 +163,6 @@ def kill_player(data_dir: str, index: int, counter_kill: bool) -> dict:
         "date": data["participants"][index]["death"],
         "rank": rank
     }
-    if counter_kill:
-        victim["mission"] = f"Counter kill: {victim['mission']}"
     return victim
 
 
@@ -185,8 +189,7 @@ def end_killer(data_dir: str) -> None:
     generate_killer_results(data_dir, False)
 
 
-def change_mission(data_dir: str, name: str, new_mission: str) -> None:
-    player_index = find_player_index(data_dir, name)
+def change_mission(data_dir: str, player_index :int, new_mission: str) -> None:
     data = get_killer_data(data_dir)
     data["participants"][player_index]["how_to_kill"] = new_mission
     save_killer_data(data_dir, data)
@@ -286,5 +289,5 @@ def random_kills() -> None:
     random.shuffle(players)
     while len(players) > 1:
         name = players.pop()["name"]
-        kill_player("src/data_serv", name, False)
+        kill_player("src/data_serv", name)
         print(f"killed {name}")

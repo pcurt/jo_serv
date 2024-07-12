@@ -217,7 +217,7 @@ def set_killer_ranks(data_dir: str, players: list) -> None:
     save_killer_data(data_dir, data)
 
 
-def generate_survie_results(data_dir: str) -> None:
+def generate_survie_results(data_dir: str, give_medals: bool) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     teams: dict = dict(Teams=[])
@@ -227,21 +227,19 @@ def generate_survie_results(data_dir: str) -> None:
     for player in teams["Teams"]:
         player["Players"] = player["name"]
         del player["name"]
-    add_new_results("Killer-Survie", teams, data_dir)
+    if give_medals:
+        add_new_results("Killer-Survie", teams, data_dir)
 
 
 def generate_killer_results(data_dir: str, give_medals: bool) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     set_killer_ranks(data_dir, players)
-
-    if not give_medals:
-        return
-    generate_survie_results(data_dir)
-    generate_murders_results(data_dir)
+    generate_survie_results(data_dir, give_medals)
+    generate_murders_results(data_dir, give_medals)
 
 
-def generate_murders_results(data_dir: str) -> None:
+def generate_murders_results(data_dir: str, give_medals: bool) -> None:
     data = get_killer_data(data_dir)
     players = data["participants"]
     for player in players:
@@ -265,7 +263,8 @@ def generate_murders_results(data_dir: str) -> None:
         player["Players"] = player["name"]
         player["rank"] = player["kills_rank"]
         del player["name"]
-    add_new_results("Killer-Kills", new_teams, data_dir)
+    if give_medals:
+        add_new_results("Killer-Kills", new_teams, data_dir)
 
 
 def get_killer_player_info(data_dir: str, name: str) -> dict:

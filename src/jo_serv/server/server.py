@@ -419,7 +419,10 @@ def create_server(data_dir: str) -> Flask:
         file_name = f"{sport}_status.json"
         with open(f"{data_dir}/teams/{file_name}", "r") as file:
             data = json.load(file)
-        data["arbitre"] = arbitre
+        data["arbitre"] = []
+        for new_arbitre in arbitre:
+            if new_arbitre != "":
+                data["arbitre"].append(new_arbitre)
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(data, file, ensure_ascii=False)
         adapt_bet_file(data_dir, sport)

@@ -299,7 +299,6 @@ def update_list(sport: str, data: dict, data_dir: str) -> None:
                                         matches_data["Series"][next]["Teams"].append(
                                             dict(Players=player["Players"], rank=0)
                                         )
-                                    print(matches_data["Series"][next]["Teams"])
 
     with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
         json.dump(matches_data, file, ensure_ascii=False)
@@ -379,7 +378,6 @@ def get_results(athlete: Any, data_dir: str) -> dict:
                 sport_results = json.load(file)
                 if current_year in sport_results:
                     for team in sport_results[current_year]["Teams"]:
-                        logger.info(team)
                         if re.search(f"\\b{athlete}\\b", team["Players"]):
                             rank = team["rank"]
                             if rank < 4:
@@ -458,7 +456,6 @@ def update_global_results(data_dir: str) -> None:
         result = update_results(athlete, data_dir)
         result["name"] = athlete
         results.append(result)
-        print(result)
     results = sorted(results, key=lambda i: i["points"])  # type: ignore
     results.reverse()
     rank = 0
@@ -558,3 +555,29 @@ def end_sport(sportname: str, data_dir: str) -> None:
         status["status"] = "results"
         json.dump(status, file)
     send_notif("all", sportname, "Vous pouvez désormais voir les résultast!", data_dir)
+
+
+def end_rangement(data_dir: str) -> None:
+    with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+        data = json.load(file)
+    players = data["Players"]
+    players = sorted(players, key=lambda i: i["score"])
+    players.reverse()
+    print(players)
+    max_score = players[0]["score"]
+    rank = 1
+    for player in players:
+        if player["score"] == max_score:
+            player["rank"] = rank
+        else:
+            max_score = player["score"]
+            rank += 1
+            if rank == 4:
+                break
+            player["rank"] = rank
+
+    teams: dict = dict(Teams=[])
+    for team in players:
+        if "rank" in team:
+            teams["Teams"].append(dict(rank=team["rank"], Players=team["name"]))
+    add_new_results("Rangement", teams, data_dir)

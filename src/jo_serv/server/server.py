@@ -51,6 +51,7 @@ from jo_serv.tools.tools import (
 )
 
 from jo_serv.tools.match_mgmt import (
+    end_rangement,
     generate_vote_results,
     lock,
     team_to_next_step,
@@ -844,18 +845,43 @@ def create_server(data_dir: str) -> Flask:
             json_data = json.loads(decode_data)
             tasks = json_data.get("tasks")
             tasks_list = []
-            busy_people = []
             for task in tasks:
-                logging.info(task)
                 if task["title"] != "":
                     tasks_list.append(task)
-                    if task["state"] == 1:
-                        for participant in task["participants"]:
-                            busy_people.append(participant)
-            logging.info(busy_people)
             with open(f"{data_dir}/teams/Rangement.json", "r") as file:
                 data = json.load(file)
             data["tasks"] = tasks_list
+            with open(f"{data_dir}/teams/Rangement.json", "w") as file:
+                json.dump(data, file)
+            rangement_mutex.release()
+            return Response(response="ok", status=200)
+        except Exception:
+            rangement_mutex.release()
+            return Response(response="Error on update rangement", status=404)
+
+    @app.route("/update-task", methods=["POST"])
+    def update_task() -> Response:
+        try:
+            rangement_mutex.acquire()
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            task_to_update = json_data.get("task")
+            with open(f"{data_dir}/teams/Rangement.json", "r") as file:
+                data = json.load(file)
+            tasks_list = data["tasks"]
+            busy_people = []
+            all_done = True
+            for task in tasks_list:
+                if task["title"] == task_to_update["title"]:
+                    task["state"] = task_to_update["state"]
+                    task["participants"] = task_to_update["participants"]
+                if task["state"] == 1:
+                    for participant in task["participants"]:
+                        busy_people.append(participant)
+                if task["state"] == 0:
+                    task["participants"] = []
+                if task["state"] != 2:
+                    all_done = False
             for player in data["Players"]:
                 player["busy"] = player["name"] in busy_people
                 player["score"] = 0
@@ -863,6 +889,10 @@ def create_server(data_dir: str) -> Flask:
                     if task["state"] == 2 and player["name"] in task["participants"]:
                         player["score"] += task["points"] / len(task["participants"])
 
+            logging.info(all_done)
+            if all_done:
+                data["done"] = True
+                end_rangement(data_dir)
             with open(f"{data_dir}/teams/Rangement.json", "w") as file:
                 json.dump(data, file)
             rangement_mutex.release()

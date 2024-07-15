@@ -131,6 +131,15 @@ def get_arbitre_list(name: str, arbitre_list: list, data_dir: str) -> None:
                         arbitre_list.append(filename.split("_status.json")[0])
 
 
+def get_all_arbitres(data_dir: str) -> Any:
+    arbitres = []
+    for sport in sports_list(data_dir):
+        with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
+            data = json.load(file)
+        arbitres.append(dict(sport=sport, arbitres=data["arbitre"]))
+    return arbitres
+
+
 def parse_json(
     name_searched: str,
     suffix: str,

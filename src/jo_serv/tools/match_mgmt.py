@@ -131,7 +131,11 @@ def update_poules_match(
             with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
                 data = json.load(file)
             if "playoff" in data["states"]:
-                if len(matches_data["groups"]) == 2:
+                if len(matches_data["groups"]) == 1:
+                    poule = matches_data["groups"][0]
+                    teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
+                    teams["Teams"].append(dict(Players=get_n_th(poule, 2)["name"]))
+                elif len(matches_data["groups"]) == 2:
                     for poule in matches_data["groups"]:
                         teams["Teams"].append(dict(Players=get_n_th(poule, 1)["name"]))
                     matches_data["groups"].reverse()

@@ -266,6 +266,7 @@ def adapt_bet_file(data_dir: str, sport: str) -> None:
         json.dump(dict(Teams=bets), bets_file)
     with open(f"{data_dir}/teams/{sport}.json", "w") as teams_file:
         json.dump(dict(Teams=teams), teams_file)
+    send_notif('All', f"{sport} a été modifié", "Pensez à modifier vos votes", data_dir)
 
 
 def add_events_to_handler(data_dir: str) -> None:

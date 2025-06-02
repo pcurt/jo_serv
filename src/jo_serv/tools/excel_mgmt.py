@@ -238,29 +238,33 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
         level_name = ["Final", "Semi", "Quart", "Huitième", "1er Tour"]
         final: dict = dict(
             Name="Final",
-            Teams=[dict(Players="", rank=0)] * teams_per_match,
+            Teams=[dict(Players="", rank=0, score="")] * teams_per_match,
             Selected=3,
-            NextSerie=0,
         )
         if levels > 0:
-            series["Series"].append(final)
             for level in range(1, levels + 1):
-                for serie_num in range(2**level):
-                    series["Series"].append(
-                        dict(
-                            Name=f"{level_name[level]}{serie_num+1}",
-                            Teams=[],
-                            Selected=ceil(teams_per_match / 2),
-                            NextSerie=0,
+                if level != levels:
+                    for serie_num in range(2**level):
+                        series["Series"].append(
+                            dict(
+                                Name=f"{level_name[level]}{serie_num+1}",
+                                Teams=[dict(Players="", rank=0, score="")] * teams_per_match,
+                                Selected=ceil(teams_per_match / 2),
+                            )
                         )
-                    )
                 if level == levels:
+                    for serie_num in range(int(len(teams)/teams_per_match + 1)):
+                        series["Series"].append(
+                            dict(
+                                Name=f"{level_name[level]}{serie_num+1}",
+                                Teams=[],
+                                Selected=ceil(teams_per_match / 2),
+                            ))
                     for team_number in range(len(teams)):
-                        print(team_number)
+                        # team fill currently not respecting seeding
                         for serie in series["Series"]:
-                            print(serie)
                             if (
-                                f"{level_name[level]}{team_number%2**levels+1}"
+                                f"{level_name[level]}{team_number%int(len(teams)/teams_per_match + 1) + 1}"
                                 == serie["Name"]
                             ):
                                 serie["Teams"].append(
@@ -270,10 +274,7 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
                                         score="",
                                     )
                                 )
-                else:
-                    for serie in series["Series"]:
-                        for _ in range(teams_per_match):
-                            serie["Teams"].append(dict(Players="", rank=0, score=""))
+            series["Series"].append(final)
             return series
         else:
             final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
@@ -283,3 +284,36 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
         final["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
     series["Series"].append(final)
     return series
+
+
+def generate_seeding(teams: list) -> Dict[str, list]:
+    print(teams)
+    rounds = dict(Rounds=[])
+    seeding = dict(Name="Seeding", Teams=[], Selected=len(teams))
+    for team in teams:
+        seeding["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
+    rounds["Rounds"].append(seeding)
+    return rounds
+
+
+def generate_rounds(teams: list, config: Any, states: list, empty: bool, seeding: list=[]) -> Dict[str, list]:
+    print(teams)
+    teams_per_match = config["Teams per match"]
+    number_of_pools = int(len(teams)/teams_per_match) + 1
+    number_of_rounds = 1
+    pools = 1
+    states.append("1er tour")
+    rounds = dict(Name="Rounds", Rounds=[])
+    rounds["Rounds"].append(dict(Name="1er tour", Teams=number_of_pools*[dict(Teams=4*[""])]))
+    while pools < number_of_pools:
+        number_of_pools = int(number_of_pools/2)
+        number_of_rounds += 1
+        states.append(f"{number_of_rounds}e tour")
+        if (number_of_pools & (number_of_pools - 1)) != 0:
+            number_of_pools = 1 << (number_of_pools.bit_length())
+        rounds["Rounds"].append(dict(Name=f"{number_of_rounds}e tour", Teams=number_of_pools*[dict(Teams=4*[""])]))
+    if empty:
+        return rounds
+
+    
+

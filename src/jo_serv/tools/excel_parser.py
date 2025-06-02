@@ -5,6 +5,8 @@ from jo_serv.tools.excel_mgmt import (
     concatenate_players,
     create_empty_dict,
     generate_pools,
+    generate_rounds,
+    generate_seeding,
     generate_series,
     generate_table,
     generate_teams,
@@ -33,6 +35,7 @@ def parse_excel(data_dir: str) -> None:
                    "Sexe")
     sports_name = ("10 km de Meyssiez",
                    "Volley",
+                   "Mario Kart",
                    "Concours de pizza",
                    "Waterpolo",
                    "Spikeball",
@@ -104,6 +107,7 @@ def parse_exported_excel(data_dir: str) -> None:
                    "100m Ricard",
                    "Blitz",
                    "Petanque",
+                   "Mario Kart"
                    )
 
     for sport_name in sports_name:
@@ -153,7 +157,19 @@ def parse_exported_excel(data_dir: str) -> None:
             file_name = file_name[:-5] + "_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
-
+        elif sport_config["Type"] == "Seeding+Series":
+            status = "seeding"
+            states = ["seeding", "series"]
+            seeding = generate_seeding(teams_list["Teams"])
+            file_name = file_name[:-5] + "_seeding.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(seeding, file, ensure_ascii=False)
+            seeding["Rounds"].append(generate_series(teams_list["Teams"], sport_config))
+            file_name = file_name[:-13] + "_series.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(seeding, file, ensure_ascii=False)
+            states.append("paris")
+            states.append("results")
         file_name = get_file_name(sport_name, data_dir)
         file_name = file_name[:-5] + "_status.json"
         status_info = dict(

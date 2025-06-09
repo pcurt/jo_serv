@@ -180,7 +180,7 @@ def get_all_event_list(data_dir: str) -> list:
     all_event = []
     for file in glob.glob(f"{data_dir}/teams/*.json"):
         if "_status" not in file and "_poules" not in file:
-            if "_series" not in file and "_playoff" not in file:
+            if "_series" not in file and "_playoff" not in file and "_seeding" not in file:
                 if "_ts" not in file and "_save" not in file:
                     logger.debug(f"Files is : {file}")
                     event = os.path.basename(file).split(".")[0]

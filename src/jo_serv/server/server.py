@@ -33,6 +33,7 @@ from jo_serv.tools.killer import (
 
 from jo_serv.tools.excel_mgmt import (
     generate_pools,
+    generate_seeding,
     generate_series,
     generate_table,
     get_sport_config,
@@ -60,6 +61,7 @@ from jo_serv.tools.match_mgmt import (
     update_list,
     update_playoff_match,
     update_poules_match,
+    update_seeding,
     update_vote,
 
 )
@@ -317,6 +319,7 @@ def create_server(data_dir: str) -> Flask:
         sport = json_data.get("sport")
         match = json_data.get("match")
         type = json_data.get("type")
+        uniqueID = json_data.get("uniqueId")
 
         if user_is_authorized(username, sport, data_dir):
             logger.info("User is authorized")
@@ -330,7 +333,9 @@ def create_server(data_dir: str) -> Flask:
                 match_id = int(match["uniqueId"])
                 update_poules_match(sport, match_id, match, data_dir)
             elif type == "liste":
-                update_list(sport, match, data_dir)
+                update_list(sport, match, data_dir, uniqueID)
+            elif type == "seeding":
+                update_seeding(sport, match, data_dir)
         else:
             logger.info("User in not authorized")
         logger.info("update_global_results")
@@ -415,6 +420,15 @@ def create_server(data_dir: str) -> Flask:
             with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
             logger.info("Series renewed")
+        
+        elif sport_config["Type"] == "Seeding+Series":
+            seeding = generate_seeding(new_teams, sport_config)
+            file_name = f"{sport}_seeding.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(seeding, file, ensure_ascii=False)
+            with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
+                json.dump(seeding, file, ensure_ascii=False)
+            logger.info("Seeding renewed")
 
         file_name = f"{sport}_status.json"
         with open(f"{data_dir}/teams/{file_name}", "r") as file:

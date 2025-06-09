@@ -5,7 +5,7 @@ import logging
 import datetime
 import os
 from typing import Any, Tuple
-from jo_serv.tools.excel_mgmt import generate_table
+from jo_serv.tools.excel_mgmt import generate_table, get_sport_config, get_file_name
 from jo_serv.tools.tools import send_notif, players_list
 
 
@@ -267,15 +267,106 @@ def compute_points(poule: dict) -> dict:
     return poule
 
 
-def update_list(sport: str, data: dict, data_dir: str) -> None:
+def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("update_list")
+    sport_config = get_sport_config(f"{sport}.json", data_dir)
     with open(f"{data_dir}/teams/{sport}_series.json", "r") as file:
         matches_data = json.load(file)
+        # Find serie
+        server_serie = None
+        for serie in matches_data["Series"]:
+            if serie["Name"] == serie_to_update:
+                server_serie = serie
+        if server_serie == None:
+            raise Exception(f"Coulnd't find serie: {serie_to_update}")
+        if server_serie["InProgress"] == False:
+            raise Exception(f"Serie: {serie_to_update} can't be updated yet")
+        # Find players in this serie
+        players = []
+        all_scores_entered = True
         for player_data in data:
+            serie_competing = player_data["series_name"]
+            if serie_competing != serie_to_update:
+                continue
+            players.append(player_data)
+            if "Ranks on score" in sport_config:
+                all_scores_entered = all_scores_entered if player_data["score"] != "" else False
+        # Update their scores/ranks
+        for server_player in server_serie["Teams"]:
+            for player_data in players:
+                if server_player["Players"] == player_data["username"]:
+                    server_player["rank"] = player_data["rank"]
+                    server_player["score"] = player_data["score"]
+        # Check if we can set the serie as Over
+        if "Ranks on score" in sport_config and all_scores_entered:
+            server_serie["Teams"] = sorted(server_serie["Teams"], key=lambda i: int(i["score"]))
+            if sport_config["Series rank"] == "highest":
+                server_serie["Teams"].reverse()
+            max_score = server_serie["Teams"][0]["score"]
+            rank = 1
+            server_serie["Teams"][0]["rank"] = rank
+            next_rank = 1
+            for player in server_serie["Teams"][1:]:
+                if player["score"] == max_score:
+                    player["rank"] = rank
+                    next_rank += 1
+                else:
+                    max_score = player["score"]
+                    rank += next_rank
+                    next_rank = 1
+                    player["rank"] = rank
+            server_serie["Over"] = True
+        else:
+            medals = 0
+            for player in server_serie["Teams"]:
+                if player["rank"] < 4: 
+                    medals += 1
+            server_serie["Over"] = medals > 2
+        level = server_serie["Level"]
+        # If not final check if all series are over for this round, if so start next one
+        if level != 0:
+            if all(serie["Over"] or serie["Level"] != level for serie in matches_data["Series"]):
+                teams_per_match = sport_config["Teams per match"]
+                required_players = teams_per_match * 2**(level - 1)
+                number_of_series = 0
+                all_players = []
+                for serie in matches_data["Series"]:
+                    if serie["Level"] == level:
+                        number_of_series += 1
+                        for player in serie["Teams"]:
+                            all_players.append(player)
+                all_players = sorted(all_players, key=lambda i: int(i["score"]))
+                all_players.reverse()
+                all_players = sorted(all_players, key=lambda i: int(i["rank"]))[:required_players]
+                logger.info(all_players)
+                for i in range(teams_per_match):
+                    for serie in matches_data["Series"]:
+                        if serie["Level"] == (level - 1):
+                            player = all_players.pop(0)
+                            serie["Teams"][i]["Players"] = player["Players"]
+                            serie["InProgress"] = True
+                    all_players.reverse()
+                    if i%2 == 1:
+                        matches_data["Series"].reverse()
+                if matches_data["Series"][0]["Name"] == "Final":
+                    matches_data["Series"].reverse()
+
+    with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
+        json.dump(matches_data, file, ensure_ascii=False)
+    if "Pizza" in sport:
+        return
+    if serie_to_update == "Final" and server_serie["Over"]:
+        teams: dict = dict(Teams=[])
+        for team in server_serie["Teams"]:
+            if team["rank"]:
+                if team["rank"] <= server_serie["Selected"]:
+                    teams["Teams"].append(team)
+        add_new_results(sport, teams, data_dir)
+    logger.info("update_list end")
+
+    """
             level = player_data["level"]
-            player_name = player_data["username"]
-            serie = matches_data["Series"][level]
             for player in serie["Teams"]:
                 if player_name == player["Players"]:
                     player["rank"] = player_data["rank"]
@@ -304,16 +395,10 @@ def update_list(sport: str, data: dict, data_dir: str) -> None:
                                             dict(Players=player["Players"], rank=0)
                                         )
 
-    with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
-        json.dump(matches_data, file, ensure_ascii=False)
-    if "Pizza" in sport:
-        return
-    teams: dict = dict(Teams=[])
-    for team in matches_data["Series"][0]["Teams"]:
-        if team["rank"]:
-            teams["Teams"].append(team)
-    add_new_results(sport, teams, data_dir)
-    logger.info("update_list end")
+    """
+
+def update_seeding(sport: str, data: dict, data_dir: str) -> None:
+    pass
 
 
 def add_new_results(sport: str, results: Any, data_dir: str) -> None:
@@ -371,10 +456,10 @@ def generate_vote_results(data_dir: str, sportname: str) -> None:
 
 def get_results(athlete: Any, data_dir: str) -> dict:
     logger = logging.getLogger(__name__)
-    logger.info("get_results")
+    #logger.info("get_results")
     results: dict = dict(nr1=[], nr2=[], nr3=[])
     for filename in os.listdir(f"{data_dir}/results/sports/"):
-        logger.info(f"{filename}")
+        #logger.info(f"{filename}")
         if "_summary.json" in filename:
             sport = filename.replace("_summary.json", "")
             with open(f"{data_dir}/results/sports/{filename}", "r") as file:

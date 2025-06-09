@@ -225,11 +225,12 @@ def generate_pools(teams: list) -> Dict[str, list]:
     return pools
 
 
-def generate_series(teams: list, config: Any) -> Dict[str, list]:
+def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, list]:
     print(teams)
-    series: Dict[str, list] = dict(Series=[])
+    series: Dict[str, list] = dict(Series=[], Levels=0)
     if "Teams per match" in config:
         levels = 0
+        uniqueID = 0
         teams_per_match = config["Teams per match"]
         nb_teams: float = len(teams)
         while nb_teams > teams_per_match:
@@ -240,46 +241,92 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
             Name="Final",
             Teams=[dict(Players="", rank=0, score="")] * teams_per_match,
             Selected=3,
+            Level=0,
+            Over=False,
+            InProgress=False,
+            UniqueID=uniqueID
         )
         if levels > 0:
+            series["Levels"] = levels
+            series["Series"].append(final)
             for level in range(1, levels + 1):
                 if level != levels:
                     for serie_num in range(2**level):
+                        uniqueID += 1
                         series["Series"].append(
                             dict(
-                                Name=f"{level_name[level]}{serie_num+1}",
+                                Name=f"{level_name[level]} {serie_num+1}",
                                 Teams=[dict(Players="", rank=0, score="")] * teams_per_match,
                                 Selected=ceil(teams_per_match / 2),
+                                Level=level,
+                                Over=False,
+                                InProgress=False,
+                                UniqueID=uniqueID
                             )
                         )
                 if level == levels:
                     for serie_num in range(int(len(teams)/teams_per_match + 1)):
-                        series["Series"].append(
-                            dict(
-                                Name=f"{level_name[level]}{serie_num+1}",
+                        uniqueID += 1
+                        first_round = dict(
+                                Name=f"{level_name[level]} {serie_num+1}",
                                 Teams=[],
                                 Selected=ceil(teams_per_match / 2),
-                            ))
-                    for team_number in range(len(teams)):
-                        # team fill currently not respecting seeding
-                        for serie in series["Series"]:
-                            if (
-                                f"{level_name[level]}{team_number%int(len(teams)/teams_per_match + 1) + 1}"
-                                == serie["Name"]
-                            ):
-                                serie["Teams"].append(
-                                    dict(
-                                        Players=teams[team_number]["Players"],
-                                        rank=0,
-                                        score="",
-                                    )
+                                Level=level,
+                                Over=False,
+                                InProgress=True,
+                                UniqueID=uniqueID
                                 )
-            series["Series"].append(final)
+                        if seeding: # only handles groups of 4
+                            first_round["Teams"].append(
+                                        dict(
+                                            Players=teams[serie_num]["Players"],
+                                            rank=0,
+                                            score="",
+                                        )
+                                )
+                            first_round["Teams"].append(
+                                        dict(
+                                            Players=teams[len(teams) - serie_num - 1]["Players"],
+                                            rank=0,
+                                            score="",
+                                        )
+                                )
+                            first_round["Teams"].append(
+                                        dict(
+                                            Players=teams[int(len(teams)/2 - serie_num)]["Players"],
+                                            rank=0,
+                                            score="",
+                                        )
+                                )
+                            if (len(teams)%teams_per_match == 0) or (serie_num < len(teams) - 3*int(len(teams)/teams_per_match + 1)):
+                                first_round["Teams"].append(
+                                        dict(
+                                            Players=teams[int(len(teams)/2) + serie_num + 1]["Players"],
+                                            rank=0,
+                                            score="",
+                                        )
+                                    )
+                        series["Series"].append(first_round)
+                    if not seeding:
+                        for team_number in range(len(teams)):
+                            for serie in series["Series"]:
+                                if (
+                                    f"{level_name[level]} {team_number%int(len(teams)/teams_per_match + 1) + 1}"
+                                    == serie["Name"]
+                                ):
+                                    serie["Teams"].append(
+                                        dict(
+                                            Players=teams[team_number]["Players"],
+                                            rank=0,
+                                            score="",
+                                        )
+                                    )
+            series["Series"].reverse()
             return series
         else:
-            final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
+            final = dict(Name="Final", Teams=[], Selected=3, Level=0, Over=False, InProgress=True, UniqueID=0)
     else:
-        final = dict(Name="Final", Teams=[], Selected=3, NextSerie=0)
+        final = dict(Name="Final", Teams=[], Selected=3, Level=0, Over=False, InProgress=True, UniqueID=0)
     for team in teams:
         final["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
     series["Series"].append(final)
@@ -288,32 +335,10 @@ def generate_series(teams: list, config: Any) -> Dict[str, list]:
 
 def generate_seeding(teams: list) -> Dict[str, list]:
     print(teams)
-    rounds = dict(Rounds=[])
     seeding = dict(Name="Seeding", Teams=[], Selected=len(teams))
     for team in teams:
         seeding["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
-    rounds["Rounds"].append(seeding)
-    return rounds
-
-
-def generate_rounds(teams: list, config: Any, states: list, empty: bool, seeding: list=[]) -> Dict[str, list]:
-    print(teams)
-    teams_per_match = config["Teams per match"]
-    number_of_pools = int(len(teams)/teams_per_match) + 1
-    number_of_rounds = 1
-    pools = 1
-    states.append("1er tour")
-    rounds = dict(Name="Rounds", Rounds=[])
-    rounds["Rounds"].append(dict(Name="1er tour", Teams=number_of_pools*[dict(Teams=4*[""])]))
-    while pools < number_of_pools:
-        number_of_pools = int(number_of_pools/2)
-        number_of_rounds += 1
-        states.append(f"{number_of_rounds}e tour")
-        if (number_of_pools & (number_of_pools - 1)) != 0:
-            number_of_pools = 1 << (number_of_pools.bit_length())
-        rounds["Rounds"].append(dict(Name=f"{number_of_rounds}e tour", Teams=number_of_pools*[dict(Teams=4*[""])]))
-    if empty:
-        return rounds
+    return seeding
 
     
 

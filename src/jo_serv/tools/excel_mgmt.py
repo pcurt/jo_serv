@@ -226,7 +226,6 @@ def generate_pools(teams: list) -> Dict[str, list]:
 
 
 def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, list]:
-    print(teams)
     series: Dict[str, list] = dict(Series=[], Levels=0)
     if "Teams per match" in config:
         levels = 0
@@ -251,11 +250,12 @@ def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, 
             series["Series"].append(final)
             for level in range(1, levels + 1):
                 if level != levels:
-                    for serie_num in range(2**level):
+                    max_serie_num = 2** level
+                    for serie_num in range(max_serie_num):
                         uniqueID += 1
                         series["Series"].append(
                             dict(
-                                Name=f"{level_name[level]} {serie_num+1}",
+                                Name=f"{level_name[level]} {max_serie_num - serie_num}",
                                 Teams=[dict(Players="", rank=0, score="")] * teams_per_match,
                                 Selected=ceil(teams_per_match / 2),
                                 Level=level,
@@ -265,10 +265,11 @@ def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, 
                             )
                         )
                 if level == levels:
-                    for serie_num in range(int(len(teams)/teams_per_match + 1)):
+                    max_serie_num = int(len(teams)/teams_per_match + 1)
+                    for serie_num in range(max_serie_num):
                         uniqueID += 1
                         first_round = dict(
-                                Name=f"{level_name[level]} {serie_num+1}",
+                                Name=f"{level_name[level]} {max_serie_num - serie_num}",
                                 Teams=[],
                                 Selected=ceil(teams_per_match / 2),
                                 Level=level,
@@ -335,7 +336,7 @@ def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, 
 
 def generate_seeding(teams: list) -> Dict[str, list]:
     print(teams)
-    seeding = dict(Name="Seeding", Teams=[], Selected=len(teams))
+    seeding = dict(Name="Seeding", Teams=[], Selected=len(teams), Over=False)
     for team in teams:
         seeding["Teams"].append(dict(Players=team["Players"], rank=0, score=""))
     return seeding

@@ -163,7 +163,7 @@ def parse_exported_excel(data_dir: str) -> None:
             file_name = file_name[:-5] + "_seeding.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(seeding, file, ensure_ascii=False)
-            series = generate_series(teams_list["Teams"], sport_config, True)
+            series = generate_series([dict(Players="")]*len(teams_list["Teams"]), sport_config, True)
             file_name = file_name[:-13] + "_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)

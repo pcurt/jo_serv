@@ -5,7 +5,7 @@ import logging
 import datetime
 import os
 from typing import Any, Tuple
-from jo_serv.tools.excel_mgmt import generate_table, get_sport_config, get_file_name
+from jo_serv.tools.excel_mgmt import generate_table, get_sport_config, generate_series
 from jo_serv.tools.tools import send_notif, players_list
 
 
@@ -299,24 +299,25 @@ def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> 
                     server_player["rank"] = player_data["rank"]
                     server_player["score"] = player_data["score"]
         # Check if we can set the serie as Over
-        if "Ranks on score" in sport_config and all_scores_entered:
-            server_serie["Teams"] = sorted(server_serie["Teams"], key=lambda i: int(i["score"]))
-            if sport_config["Series rank"] == "highest":
-                server_serie["Teams"].reverse()
-            max_score = server_serie["Teams"][0]["score"]
-            rank = 1
-            server_serie["Teams"][0]["rank"] = rank
-            next_rank = 1
-            for player in server_serie["Teams"][1:]:
-                if player["score"] == max_score:
-                    player["rank"] = rank
-                    next_rank += 1
-                else:
-                    max_score = player["score"]
-                    rank += next_rank
-                    next_rank = 1
-                    player["rank"] = rank
-            server_serie["Over"] = True
+        if "Ranks on score" in sport_config:
+            if all_scores_entered:
+                server_serie["Teams"] = sorted(server_serie["Teams"], key=lambda i: float(i["score"]))
+                if sport_config["Series rank"] == "highest":
+                    server_serie["Teams"].reverse()
+                max_score = server_serie["Teams"][0]["score"]
+                rank = 1
+                server_serie["Teams"][0]["rank"] = rank
+                next_rank = 1
+                for player in server_serie["Teams"][1:]:
+                    if player["score"] == max_score:
+                        player["rank"] = rank
+                        next_rank += 1
+                    else:
+                        max_score = player["score"]
+                        rank += next_rank
+                        next_rank = 1
+                        player["rank"] = rank
+                server_serie["Over"] = True
         else:
             medals = 0
             for player in server_serie["Teams"]:
@@ -336,7 +337,7 @@ def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> 
                         number_of_series += 1
                         for player in serie["Teams"]:
                             all_players.append(player)
-                all_players = sorted(all_players, key=lambda i: int(i["score"]))
+                all_players = sorted(all_players, key=lambda i: float(i["score"].replace(",",".")))
                 all_players.reverse()
                 all_players = sorted(all_players, key=lambda i: int(i["rank"]))[:required_players]
                 logger.info(all_players)
@@ -365,40 +366,59 @@ def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> 
         add_new_results(sport, teams, data_dir)
     logger.info("update_list end")
 
-    """
-            level = player_data["level"]
-            for player in serie["Teams"]:
-                if player_name == player["Players"]:
-                    player["rank"] = player_data["rank"]
-                    if "score" in player_data:
-                        player["score"] = player_data["score"]
-        if len(matches_data["Series"]) > 1:
-            if not all(serie_is_over(serie) for serie in matches_data["Series"][1:]):
-                matches_data["Series"][0]["Teams"] = []
-                for _ in range(4):
-                    matches_data["Series"][0]["Teams"].append(dict(Players="", rank=0))
-            elif not serie_is_over(matches_data["Series"][0]):
-                matches_data["Series"][0]["Teams"] = []
-                for serie in matches_data["Series"][1:]:
-                    for player_data in serie:
-                        for player in serie["Teams"]:
-                            if player["rank"] and player["rank"] <= serie["Selected"]:
-                                next = serie["NextSerie"]
-                                if not next == -1:
-                                    if not any(
-                                        team["Players"] == player["Players"]
-                                        for team in matches_data["Series"][next][
-                                            "Teams"
-                                        ]
-                                    ):
-                                        matches_data["Series"][next]["Teams"].append(
-                                            dict(Players=player["Players"], rank=0)
-                                        )
-
-    """
 
 def update_seeding(sport: str, data: dict, data_dir: str) -> None:
-    pass
+    logger = logging.getLogger(__name__)
+    logger.info("update_seeding")
+    sport_config = get_sport_config(f"{sport}.json", data_dir)
+    with open(f"{data_dir}/teams/{sport}_seeding.json", "r") as file:
+        matches_data = json.load(file)
+        all_scores_entered = True
+        for local_team in matches_data["Teams"]:
+            for update_team in data:
+                if local_team["Players"] == update_team["username"]:
+                    local_team["score"] = update_team["score"]
+                    local_team["rank"] = update_team["rank"]
+                if "Ranks on score" in sport_config:
+                    all_scores_entered = all_scores_entered if update_team["score"] != "" else False
+        
+        if "Ranks on score" in sport_config:
+            if all_scores_entered:
+                matches_data["Teams"] = sorted(matches_data["Teams"], key=lambda i: float(i["score"].replace(",",".")))
+                if sport_config["Seeding rank"] == "highest":
+                    matches_data["Teams"].reverse()
+                max_score = matches_data["Teams"][0]["score"]
+                rank = 1
+                matches_data["Teams"][0]["rank"] = rank
+                next_rank = 1
+                for player in matches_data["Teams"][1:]:
+                    if player["score"] == max_score:
+                        player["rank"] = rank
+                        next_rank += 1
+                    else:
+                        max_score = player["score"]
+                        rank += next_rank
+                        next_rank = 1
+                        player["rank"] = rank
+                matches_data["Over"] = True
+        else:
+            medals = 0
+            for player in matches_data["Teams"]:
+                if player["rank"] < 4: 
+                    medals += 1
+            matches_data["Over"] = medals > 2
+    if matches_data["Over"]:
+        series = generate_series(matches_data["Teams"], sport_config, True)
+        with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
+            json.dump(series, file, ensure_ascii=False)
+        with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:
+            data = json.load(file)
+            data["status"] = "series"
+        with open(f"{data_dir}/teams/{sport}_status.json", "w") as file:
+            json.dump(data, file, ensure_ascii=False)
+    with open(f"{data_dir}/teams/{sport}_seeding.json", "w") as file:
+        json.dump(matches_data, file, ensure_ascii=False)
+    logger.info("seeding updated")
 
 
 def add_new_results(sport: str, results: Any, data_dir: str) -> None:

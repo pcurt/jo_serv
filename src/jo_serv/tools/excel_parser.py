@@ -25,9 +25,9 @@ from jo_serv.tools.tools import (
 
 
 def parse_excel(data_dir: str) -> None:
-    path = os.path.join(f"{data_dir}/JO_2024.xlsx")
+    path = os.path.join(f"{data_dir}/JO_2025.xlsx")
     excel_sheet = pandas.read_excel(path, sheet_name=None, engine="openpyxl")
-    export_path = os.path.join(f"{data_dir}/JO_2024_export.xlsx")
+    export_path = os.path.join(f"{data_dir}/JO_2025_export.xlsx")
     athletes = create_empty_dict(excel_sheet)
 
     useful_data = ("Nom Prénom",
@@ -87,7 +87,7 @@ def parse_excel(data_dir: str) -> None:
 
 
 def parse_exported_excel(data_dir: str) -> None:
-    path = os.path.join(f"{data_dir}/JO_2024_export.xlsx")
+    path = os.path.join(f"{data_dir}/JO_2025_export.xlsx")
 
     sports_name = ("10 km de Meyssiez",
                    "Volley",

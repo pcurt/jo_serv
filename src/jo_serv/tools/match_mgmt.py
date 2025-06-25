@@ -337,7 +337,7 @@ def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> 
                         number_of_series += 1
                         for player in serie["Teams"]:
                             all_players.append(player)
-                all_players = sorted(all_players, key=lambda i: float(i["score"].replace(",",".")))
+                all_players = sorted(all_players, key=lambda i: float(re.sub(r"[^\d.,]", "", i["score"].replace(",","."))))
                 all_players.reverse()
                 all_players = sorted(all_players, key=lambda i: int(i["rank"]))[:required_players]
                 logger.info(all_players)
@@ -384,7 +384,7 @@ def update_seeding(sport: str, data: dict, data_dir: str) -> None:
         
         if "Ranks on score" in sport_config:
             if all_scores_entered:
-                matches_data["Teams"] = sorted(matches_data["Teams"], key=lambda i: float(i["score"].replace(",",".")))
+                matches_data["Teams"] = sorted(matches_data["Teams"], key=lambda i: float(re.sub(r"[^\d.,]", "", i["score"].replace(",","."))))
                 if sport_config["Seeding rank"] == "highest":
                     matches_data["Teams"].reverse()
                 max_score = matches_data["Teams"][0]["score"]

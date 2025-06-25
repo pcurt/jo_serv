@@ -1090,6 +1090,28 @@ def create_server(data_dir: str) -> Flask:
             return make_response(get_palmares(data_dir, name))
         except Exception:
             return Response(response="Can't find requested palmares", status=404)
+        
+    @app.route("/profile/<path:name>", methods=["GET", "POST"])
+    def profile(name: str) -> Any:
+        if request.method == "GET":
+            logger.info(f"Get on : /profile for {name}")
+            try:
+                with open(f"{data_dir}/profile/{name}.json", "r") as file:
+                    data = file.read()
+                return make_response(data)
+            except Exception:
+                return make_response(dict(Profile=[dict(Title=name, Description="Profil vide", Position=0)]))
+        if request.method == "POST":
+            decode_data = request.data.decode("utf-8")
+            json_data = json.loads(decode_data)
+            logger.info(f"Post on : /profile for {name}")
+            try:
+                with open(f"{data_dir}/profile/{name}.json", "w") as file:
+                    json.dump(dict(Profile=json_data["profile"]), file)
+                return Response(response="Ok", status=200)
+            except Exception:
+                return Response(response="Error updating profile", status=404)
+
 
     @app.route("/planning", methods=["GET"])
     def planning() -> Any:

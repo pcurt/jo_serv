@@ -52,7 +52,7 @@ def generate_killer(data_dir: str) -> bool:
     data: dict = dict()
     data["started"] = True
     data["over"] = False
-    data["arbitre"] = ["Fabien", "Bifteck"]
+    data["arbitre"] = ["Boulbi"]
     data["participants"] = []
     data["start_date"] = datetime.datetime.now().timestamp()
     for player in killer_players(data_dir):

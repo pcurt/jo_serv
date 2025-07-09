@@ -111,6 +111,7 @@ def generate_event_list(name: str, data_dir: str) -> None:
     parse_json(name, "_series.json", playing_list, f"{data_dir}/teams")
     parse_json(name, "_playoff.json", playing_list, f"{data_dir}/teams")
     parse_json(name, "_poules.json", playing_list, f"{data_dir}/teams")
+    parse_json(name, "_seeding.json", playing_list, f"{data_dir}/teams")
     get_arbitre_list(name, arbitre_list, data_dir)
     arbitre_list = sort_list(data_dir, arbitre_list)
     playing_list = sort_list(data_dir, playing_list)
@@ -155,7 +156,7 @@ def parse_json(
                         list_to_append.append(filename.split(suffix)[0])
 
 
-def send_notif(to: str, title: str, body: str, data_dir: str) -> None:
+def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0) -> None:
     to = to.replace(" ", "")
     with open(f"{data_dir}/tokens.txt", "r") as tokens_file:
         tokens = tokens_file.readlines()
@@ -169,7 +170,7 @@ def send_notif(to: str, title: str, body: str, data_dir: str) -> None:
                         tokens_list.append(token)
     for token in tokens_list:
         if "ExponentPushToken" in token:
-            data = {"to": token.split(":")[0], "title": title, "body": body}
+            data = {"to": token.split(":")[0], "title": title, "body": body, "badge": badge}
             requests.post("https://exp.host/--/api/v2/push/send", data=data)
             logging.info(data)
 
@@ -266,7 +267,7 @@ def adapt_bet_file(data_dir: str, sport: str) -> None:
         json.dump(dict(Teams=bets), bets_file)
     with open(f"{data_dir}/teams/{sport}.json", "w") as teams_file:
         json.dump(dict(Teams=teams), teams_file)
-    send_notif('All', f"{sport} a été modifié", "Pensez à modifier vos votes", data_dir)
+    #send_notif('All', f"{sport} a été modifié", "Pensez à modifier vos votes", data_dir)
 
 
 def add_events_to_handler(data_dir: str) -> None:

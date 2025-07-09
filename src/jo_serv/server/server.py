@@ -78,6 +78,7 @@ connection_mutex = Lock()
 canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 killer_mutex = Lock()
 rangement_mutex = Lock()
+location_mutex = Lock()
 PARTY_STATUS = "NOT_STARTED"
 
 
@@ -146,6 +147,7 @@ def create_server(data_dir: str) -> Flask:
             json_data = json.loads(decode_data)
             username = json_data.get("username")
             # sportname = json_data.get("sportname")
+            msg_type = json_data.get("type")
             text = json_data.get("text")
             if text == "" or username == "":
                 return Response(response="fdp", status=200)
@@ -153,6 +155,8 @@ def create_server(data_dir: str) -> Flask:
             with open(f"{data_dir}/chat/{name}", "a") as new_file:
                 new_file.write(
                     "\n"
+                    + msg_type
+                    + " ~ "
                     + now.strftime("%m/%d, %H:%M")
                     + "  -  "
                     + username
@@ -422,12 +426,16 @@ def create_server(data_dir: str) -> Flask:
             logger.info("Series renewed")
         
         elif sport_config["Type"] == "Seeding+Series":
-            seeding = generate_seeding(new_teams, sport_config)
+            seeding = generate_seeding(new_teams)
             file_name = f"{sport}_seeding.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(seeding, file, ensure_ascii=False)
             with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
                 json.dump(seeding, file, ensure_ascii=False)
+            series = generate_series([dict(Players="")]*len(new_teams), sport_config, True)
+            file_name = f"{sport}_series.json"
+            with open(f"{data_dir}/teams/{file_name}", "w") as file:
+                json.dump(series, file, ensure_ascii=False)
             logger.info("Seeding renewed")
 
         file_name = f"{sport}_status.json"
@@ -437,6 +445,8 @@ def create_server(data_dir: str) -> Flask:
         for new_arbitre in arbitre:
             if new_arbitre != "" and new_arbitre not in data["arbitre"]:
                 data["arbitre"].append(new_arbitre)
+        if len(data["arbitre"]) == 0:
+            data["arbitre"].append("")
         with open(f"{data_dir}/teams/{file_name}", "w") as file:
             json.dump(data, file, ensure_ascii=False)
         adapt_bet_file(data_dir, sport)
@@ -674,7 +684,11 @@ def create_server(data_dir: str) -> Flask:
             resp = send_file(f"{data_dir}/photos/{name}.jpeg", mimetype="image/jpeg")
             return resp
         except Exception:
-            return Response(response="Can't find requested photo", status=404)
+            try:
+                resp = send_file(f"{data_dir}/photos/sport/{name}.png", mimetype="image/png")
+                return resp
+            except Exception:
+                return Response(response="Can't find requested photo", status=404)
 
     @app.route("/killer-start", methods=["POST"])
     def killer_start() -> Response:
@@ -1111,7 +1125,19 @@ def create_server(data_dir: str) -> Flask:
                 return Response(response="Ok", status=200)
             except Exception:
                 return Response(response="Error updating profile", status=404)
-
+            
+    @app.route("/bite", methods=["GET"])
+    def bite() -> Any:
+        if request.method == "GET":
+            logger.info(f"Get on: /bite")
+        try:
+            files = os.listdir(f"{data_dir}/profile")
+            bite = []
+            for elem in files:
+                bite.append(elem.replace(".json", ""))
+            return make_response(dict(bites=bite))
+        except Exception:
+            return Response(response="Can't fetch bite", status=404)
 
     @app.route("/planning", methods=["GET"])
     def planning() -> Any:
@@ -1121,4 +1147,54 @@ def create_server(data_dir: str) -> Flask:
         except Exception:
             return Response(response="Can't find planning", status=404)
 
+    @app.route("/GPX/<path:name>", methods=["GET"])
+    def GPX(name: str) -> Any:
+        logger.info("Get on : /GPX")
+        try:
+            response = make_response(send_file(f"{data_dir}/GPX/{name}"))
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+        except Exception:
+            return Response(response=f"Can't find {name}", status=404)
+
+    @app.route("/location", methods=["GET", "POST"])
+    def location() -> Any:
+        if request.method == "GET":
+            location_mutex.acquire()
+            logger.info(f"Get on : /location")
+            try:
+                with open(f"{data_dir}/location.json", "r") as file:
+                    json_data = json.load(file)
+                location_mutex.release()
+                return make_response(json_data)
+            except Exception:
+                location_mutex.release()
+                return Response(response="Error updating location", status=404)
+        if request.method == "POST":
+            location_mutex.acquire()
+            decode_data = request.data.decode("utf-8")
+            received_data = json.loads(decode_data)
+            name = received_data["user"]
+            longitude = received_data["longitude"]
+            latitude = received_data["latitude"]
+            logger.info(f"Post on : /location for {name}")
+            try:
+                with open(f"{data_dir}/location.json", "r") as file:
+                    json_data = json.load(file)
+                if not any(user["name"] == name for user in json_data["Users"]):
+                    json_data["Users"].append(dict(name=name, latitude=latitude, longitude=longitude))
+                else:
+                    for user in json_data["Users"]:
+                        if user["name"] == name:
+                            user["latitude"] = latitude
+                            user["longitude"] = longitude
+                with open(f"{data_dir}/location.json", "w") as file:
+                    json.dump(json_data, file)
+                location_mutex.release()
+                return Response(response="Ok", status=200)
+            except Exception:
+                location_mutex.release()
+                return Response(response="Error updating location", status=404)
+
     return app
+

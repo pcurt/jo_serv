@@ -265,7 +265,8 @@ def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, 
                             )
                         )
                 if level == levels:
-                    max_serie_num = int(len(teams)/teams_per_match + 1)
+                    max_serie_num = int(len(teams)/teams_per_match) + 0 if (len(teams)%teams_per_match == 0) else 1
+                    initial_len = len(teams)
                     for serie_num in range(max_serie_num):
                         uniqueID += 1
                         first_round = dict(
@@ -280,33 +281,38 @@ def generate_series(teams: list, config: Any, seeding: bool=False) -> Dict[str, 
                         if seeding: # only handles groups of 4
                             first_round["Teams"].append(
                                         dict(
-                                            Players=teams[serie_num]["Players"],
+                                            Players=teams[0]["Players"],
                                             rank=0,
                                             score="",
                                         )
                                 )
+                            teams.pop(0)
                             first_round["Teams"].append(
                                         dict(
-                                            Players=teams[len(teams) - serie_num - 1]["Players"],
+                                            Players=teams[-1]["Players"],
                                             rank=0,
                                             score="",
                                         )
                                 )
+                            teams.pop(-1)
                             first_round["Teams"].append(
                                         dict(
-                                            Players=teams[int(len(teams)/2 - serie_num)]["Players"],
+                                            Players=teams[int(len(teams)/2)]["Players"],
                                             rank=0,
                                             score="",
                                         )
                                 )
-                            if (len(teams)%teams_per_match == 0) or (serie_num < len(teams) - 3*int(len(teams)/teams_per_match + 1)):
+                            teams.pop(int(len(teams)/2))
+                            if (initial_len%teams_per_match == 0) or (serie_num < initial_len - 3*int(initial_len/teams_per_match + 1)):
                                 first_round["Teams"].append(
                                         dict(
-                                            Players=teams[int(len(teams)/2) + serie_num + 1]["Players"],
+                                            Players=teams[int(len(teams)/2)]["Players"],
                                             rank=0,
                                             score="",
                                         )
                                     )
+                                teams.pop(int(len(teams)/2))
+                                
                         series["Series"].append(first_round)
                     if not seeding:
                         for team_number in range(len(teams)):

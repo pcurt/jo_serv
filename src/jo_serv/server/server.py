@@ -432,7 +432,7 @@ def create_server(data_dir: str) -> Flask:
                 json.dump(seeding, file, ensure_ascii=False)
             with open(f"{data_dir}/teams/save/{file_name}", "w") as file:
                 json.dump(seeding, file, ensure_ascii=False)
-            series = generate_series([dict(Players="")]*len(new_teams), sport_config, True)
+            series = generate_series([dict(Players="")]*(1 << (len(new_teams).bit_length() - 1)), sport_config, True)
             file_name = f"{sport}_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(series, file, ensure_ascii=False)
@@ -1134,6 +1134,12 @@ def create_server(data_dir: str) -> Flask:
             files = os.listdir(f"{data_dir}/profile")
             bite = []
             for elem in files:
+                with open(f"{data_dir}/profile/{elem}", "r") as file:
+                    data = json.load(file)["Profile"]
+                    if len(data) == 0:
+                        continue
+                    if data[0]["Title"] == f'{elem.replace(".json", "")}' and data[0]["Description"] == "Profil vide" and len(data) == 1:
+                        continue
                 bite.append(elem.replace(".json", ""))
             return make_response(dict(bites=bite))
         except Exception:

@@ -408,7 +408,9 @@ def update_seeding(sport: str, data: dict, data_dir: str) -> None:
                     medals += 1
             matches_data["Over"] = medals > 2
     if matches_data["Over"]:
-        series = generate_series(matches_data["Teams"], sport_config, True)
+        number_of_players = len(matches_data["Teams"])
+        required_players = 1 << (number_of_players.bit_length() - 1)
+        series = generate_series(matches_data["Teams"][:required_players], sport_config, True)
         with open(f"{data_dir}/teams/{sport}_series.json", "w") as file:
             json.dump(series, file, ensure_ascii=False)
         with open(f"{data_dir}/teams/{sport}_status.json", "r") as file:

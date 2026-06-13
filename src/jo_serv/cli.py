@@ -20,6 +20,7 @@ from jo_serv.tools.shifumi import shifumi_process
 from jo_serv.tools.killer import generate_killer
 from jo_serv.tools.match_mgmt import update_global_bets_results, update_global_results
 from jo_serv.tools.tools import create_empty_bet_files, increase_canva_size
+from jo_serv.tools.pmu import pmu_process
 
 
 # Define this function as a the main command entrypoint
@@ -82,8 +83,13 @@ def srv(
     logger.info("Starting shifumi")
     shifumi = threading.Thread(target=shifumi_process, args=(data_dir,))
     shifumi.start()
-
     logger.info("Shifumi started")
+
+    pmu = threading.Thread(target=pmu_process, args=(data_dir,))
+    pmu.start()
+    logger.info("PMU started")
+
+
     app = create_server(data_dir=data_dir)
     serve(app, port=8000)
     logger.info("Server is stopped")

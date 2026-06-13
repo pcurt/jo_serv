@@ -1028,6 +1028,24 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on shifumi", status=404)
 
+    @app.route("/pmu", methods=["GET", "POST"])
+    def pmu() -> Response:
+        """pmu endpoints
+        Returns:
+            Response: The pmu information
+        """
+
+        if request.method == "POST":
+
+            decoded_data = json.loads(request.data.decode("utf-8"))
+            return Response(response="Ok", status=200)
+        
+        else:
+            return make_response(dict(bites=bite))
+
+        return Response(response="Error on lifestate", status=404)
+
+
     @app.route("/life", methods=["POST", "GET"])
     def life() -> Response:
         if request.method == "POST":

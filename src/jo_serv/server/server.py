@@ -66,6 +66,11 @@ from jo_serv.tools.match_mgmt import (
 
 )
 
+from jo_serv.tools.pmu import (
+    get_latest_race,
+    get_all_races,
+)
+
 CANVA_SIZE = 50
 MAX_NUMBER_CANVA = 500
 live_update_mutex = Lock()
@@ -79,6 +84,7 @@ canva_array_mutex = [Lock()] * MAX_NUMBER_CANVA
 killer_mutex = Lock()
 rangement_mutex = Lock()
 location_mutex = Lock()
+pmu_mutex = Lock()
 PARTY_STATUS = "NOT_STARTED"
 
 
@@ -1028,22 +1034,27 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on shifumi", status=404)
 
-    @app.route("/pmu", methods=["GET", "POST"])
+    @app.route("/pmu", methods=["GET"])
     def pmu() -> Response:
         """pmu endpoints
         Returns:
             Response: The pmu information
         """
 
-        if request.method == "POST":
+        if request.method == "GET":
+            pmu_mutex.acquire()
+            try:
+                # Renvoyer la dernière course
+                latest_race = get_latest_race(data_dir)
+                return make_response(latest_race)
+            except Exception as e:
+                logger.error(f"Erreur PMU GET: {e}")
+                return Response(response="Erreur serveur", status=500)
+            finally:
+                pmu_mutex.release()
 
-            decoded_data = json.loads(request.data.decode("utf-8"))
-            return Response(response="Ok", status=200)
-        
-        else:
-            return make_response(dict(bites=bite))
+        return Response(response="Erreur sur endpoint PMU", status=404)
 
-        return Response(response="Error on lifestate", status=404)
 
 
     @app.route("/life", methods=["POST", "GET"])

@@ -293,9 +293,12 @@ def pmu_process(data_dir: str) -> None:
             cpt += 1
             time.sleep(1)
             race.course_suivante = COURSE_INTERVAL_S - cpt
+            race.save_to_file(data_dir)  # Sauvegarder pour mettre à jour course_suivante
 
         # Recharger la course depuis le fichier pour récupérer les paris enregistrés
         race = Race.load_from_file(data_dir, race_id)
+        race.course_suivante = 0
+        race.save_to_file(data_dir) 
         total_paris = sum(len(cheval.paris) for cheval in race.chevaux)
         logger.info(f"Course {race_id}: {total_paris} paris enregistrés")
         
@@ -303,8 +306,9 @@ def pmu_process(data_dir: str) -> None:
         simuler_course(race, data_dir)
         
         logger.info(f"Course {race_id} terminée. Gagnant: {race.gagnant}")
-        
+
         # For debug to wait for results
+        
         time.sleep(COURSE_INTERVAL_S)
 
         race_counter += 1

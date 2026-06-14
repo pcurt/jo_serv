@@ -1089,7 +1089,25 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Erreur sur endpoint PMU", status=404)
 
+    @app.route("/pmu-history", methods=["GET"])
+    def pmu_history() -> Response:
+        """Historique PMU endpoint
+        Returns:
+            Response: L'historique de toutes les courses
+        """
+        if request.method == "GET":
+            pmu_mutex.acquire()
+            try:
+                logger.info("GET on /pmu-history")
+                all_races = get_all_races(data_dir)
+                return make_response({"races": all_races, "total": len(all_races)})
+            except Exception as e:
+                logger.error(f"Erreur PMU history GET: {e}")
+                return Response(response="Erreur serveur", status=500)
+            finally:
+                pmu_mutex.release()
 
+        return Response(response="Erreur sur endpoint PMU history", status=404)
 
     @app.route("/life", methods=["POST", "GET"])
     def life() -> Response:

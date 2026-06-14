@@ -7,6 +7,7 @@ from typing import Any, List, Dict
 import random
 import os
 
+COURSE_INTERVAL_S = 10  # Intervalle entre les courses en secondes
 
 class RaceStatus(Enum):
     EN_ATTENTE = "en_attente"
@@ -38,6 +39,7 @@ class Cheval:
         self.position = 0
         self.blesse = False
         self.mort = False
+        self.paris: List[str] = []  # Liste des usernames qui ont parié sur ce cheval
 
     def to_dict(self) -> Dict:
         """Convertit le cheval en dictionnaire pour JSON"""
@@ -53,6 +55,7 @@ class Cheval:
             "position": self.position,
             "blesse": self.blesse,
             "mort": self.mort,
+            "paris": self.paris,
         }
 
     @staticmethod
@@ -71,6 +74,7 @@ class Cheval:
         cheval.position = data.get("position", 0)
         cheval.blesse = data.get("blesse", False)
         cheval.mort = data.get("mort", False)
+        cheval.paris = data.get("paris", [])
         return cheval
 
     def calcul_performance(self):
@@ -128,7 +132,8 @@ class Cheval:
             print(f"💀 {self.nom} décède pendant la course.")
             return
 
-        avance = max(0, performance / 2)
+        #avance = max(0, performance / 2) # about 1min course
+        avance = max(0, performance * 4)  # about 20s course
 
         self.position += avance
 
@@ -141,6 +146,7 @@ class Race:
         self.status = RaceStatus.EN_ATTENTE
         self.tour = 0
         self.gagnant = None
+        self.course_suivante = 0
 
     def to_dict(self) -> Dict:
         """Convertit la course en dictionnaire pour JSON"""
@@ -151,6 +157,7 @@ class Race:
             "tour": self.tour,
             "gagnant": self.gagnant,
             "chevaux": [cheval.to_dict() for cheval in self.chevaux],
+            "course_suivante": self.course_suivante,
         }
 
     @staticmethod
@@ -165,6 +172,7 @@ class Race:
         race.status = RaceStatus(data["status"])
         race.tour = data.get("tour", 0)
         race.gagnant = data.get("gagnant")
+        race.course_suivante = data.get("course_suivante", 0)
         return race
 
     def save_to_file(self, data_dir: str) -> None:
@@ -194,6 +202,7 @@ def simuler_course(race: Race, data_dir: str = None):
 
         print(f"\n--- Tour {race.tour} ---")
 
+        race.course_suivante = 0
         for cheval in race.chevaux:
             cheval.avancer(race.distance)
 
@@ -279,13 +288,27 @@ def pmu_process(data_dir: str) -> None:
         race = Race(race_id=race_id, chevaux=chevaux_course, distance=2000)
         race.save_to_file(data_dir)
         
+        cpt = 0
+        while (cpt < COURSE_INTERVAL_S):
+            cpt += 1
+            time.sleep(1)
+            race.course_suivante = COURSE_INTERVAL_S - cpt
+
+        # Recharger la course depuis le fichier pour récupérer les paris enregistrés
+        race = Race.load_from_file(data_dir, race_id)
+        total_paris = sum(len(cheval.paris) for cheval in race.chevaux)
+        logger.info(f"Course {race_id}: {total_paris} paris enregistrés")
+        
         # Simulation de la course
         simuler_course(race, data_dir)
         
         logger.info(f"Course {race_id} terminée. Gagnant: {race.gagnant}")
         
+        # For debug to wait for results
+        time.sleep(COURSE_INTERVAL_S)
+
         race_counter += 1
-        time.sleep(120)
+
 
 
 def get_latest_race(data_dir: str) -> Dict:
@@ -316,3 +339,51 @@ def get_all_races(data_dir: str) -> List[Dict]:
             races.append(json.load(f))
     
     return races
+
+
+def get_next_race_id(data_dir: str) -> str:
+    """Récupère l'ID de la prochaine course en attente"""
+    import glob
+    
+    race_files = glob.glob(os.path.join(data_dir, "pmu_race_*.json"))
+    
+    for race_file in sorted(race_files, key=os.path.getmtime):
+        with open(race_file, "r", encoding="utf-8") as f:
+            race_data = json.load(f)
+            if race_data.get("status") == RaceStatus.EN_ATTENTE.value:
+                return race_data.get("race_id")
+    
+    return None
+
+
+def save_bet(data_dir: str, race_id: str, username: str, cheval_nom: str) -> bool:
+    """Enregistre un pari pour une course donnée
+    
+    Returns:
+        bool: True si le pari a été enregistré, False si la course n'accepte plus de paris
+    """
+    try:
+        race = Race.load_from_file(data_dir, race_id)
+        
+        # Vérifier que la course est toujours en attente
+        if race.status != RaceStatus.EN_ATTENTE:
+            return False
+        
+        # Trouver le cheval et ajouter le username à sa liste de paris
+        for cheval in race.chevaux:
+            if cheval.nom == cheval_nom:
+                # Retirer l'ancien pari de ce joueur si existant
+                for c in race.chevaux:
+                    if username in c.paris:
+                        c.paris.remove(username)
+                
+                # Ajouter le nouveau pari
+                if username not in cheval.paris:
+                    cheval.paris.append(username)
+                
+                race.save_to_file(data_dir)
+                return True
+        
+        return False  # Cheval non trouvé
+    except Exception:
+        return False

@@ -69,6 +69,8 @@ from jo_serv.tools.match_mgmt import (
 from jo_serv.tools.pmu import (
     get_latest_race,
     get_all_races,
+    get_next_race_id,
+    save_bet,
 )
 
 CANVA_SIZE = 50
@@ -1034,7 +1036,7 @@ def create_server(data_dir: str) -> Flask:
 
         return Response(response="Error on shifumi", status=404)
 
-    @app.route("/pmu", methods=["GET"])
+    @app.route("/pmu", methods=["GET", "POST"])
     def pmu() -> Response:
         """pmu endpoints
         Returns:
@@ -1049,6 +1051,38 @@ def create_server(data_dir: str) -> Flask:
                 return make_response(latest_race)
             except Exception as e:
                 logger.error(f"Erreur PMU GET: {e}")
+                return Response(response="Erreur serveur", status=500)
+            finally:
+                pmu_mutex.release()
+
+        elif request.method == "POST":
+            pmu_mutex.acquire()
+            try:
+                decode_data = request.data.decode("utf-8")
+                print(decode_data)
+                json_data = json.loads(decode_data)
+                username = json_data.get("username")
+                cheval = json_data.get("cheval")
+                
+                logger.info(f"POST PMU: {username} parie sur {cheval}")
+                
+                # Trouver la prochaine course en attente
+                next_race_id = get_next_race_id(data_dir)
+                
+                if next_race_id is None:
+                    logger.warning("Aucune course en attente pour parier")
+                    return Response(response="Aucune course disponible pour parier", status=404)
+                
+                # Enregistrer le pari
+                if save_bet(data_dir, next_race_id, username, cheval):
+                    logger.info(f"Pari enregistré: {username} -> {cheval} (course {next_race_id})")
+                    return Response(response="Pari enregistré", status=200)
+                else:
+                    logger.warning(f"Impossible d'enregistrer le pari: course déjà partie")
+                    return Response(response="La course est déjà partie, pari refusé", status=403)
+                    
+            except Exception as e:
+                logger.error(f"Erreur PMU POST: {e}")
                 return Response(response="Erreur serveur", status=500)
             finally:
                 pmu_mutex.release()

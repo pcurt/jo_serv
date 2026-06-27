@@ -8,6 +8,7 @@ import random
 import os
 
 COURSE_INTERVAL_S = 10  # Intervalle entre les courses en secondes
+LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
 
 class RaceStatus(Enum):
     EN_ATTENTE = "en_attente"
@@ -206,6 +207,74 @@ def _get_pmu_lock():
     return pmu_mutex
 
 
+def _leaderboard_path(data_dir: str) -> str:
+    """Renvoie le chemin du fichier de classement PMU."""
+    return os.path.join(data_dir, "pmu_race", LEADERBOARD_FILENAME)
+
+
+def load_leaderboard(data_dir: str) -> Dict[str, int]:
+    """Charge le classement des parieurs depuis ``leaderboard.json``.
+
+    Renvoie un dictionnaire ``{username: points}``. Si le fichier n'existe
+    pas encore (ou est illisible), un classement vide est renvoyé.
+    """
+    filepath = _leaderboard_path(data_dir)
+    if not os.path.exists(filepath):
+        return {}
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "Impossible de lire le classement PMU, réinitialisation à vide"
+        )
+        return {}
+
+
+def save_leaderboard(data_dir: str, scores: Dict[str, int]) -> None:
+    """Sauvegarde le classement des parieurs dans ``leaderboard.json``."""
+    race_dir = os.path.join(data_dir, "pmu_race")
+    os.makedirs(race_dir, exist_ok=True)
+    with open(_leaderboard_path(data_dir), "w", encoding="utf-8") as f:
+        json.dump(scores, f, indent=2, ensure_ascii=False)
+
+
+def update_leaderboard_for_race(race: 'Race', data_dir: str) -> None:
+    """Attribue 1 point à chaque parieur ayant misé sur le cheval gagnant.
+
+    L'appelant est responsable de la prise du verrou ``pmu_mutex`` afin que la
+    séquence lecture + mise à jour + écriture reste atomique.
+    """
+    if not race.gagnant:
+        # Aucun gagnant (tous les chevaux hors course) : rien à attribuer.
+        return
+
+    scores = load_leaderboard(data_dir)
+    for cheval in race.chevaux:
+        if cheval.nom == race.gagnant:
+            for username in cheval.paris:
+                scores[username] = scores.get(username, 0) + 1
+            break
+
+    save_leaderboard(data_dir, scores)
+
+
+def get_leaderboard(data_dir: str) -> List[Dict]:
+    """Renvoie le classement trié par points décroissants.
+
+    Format : ``[{"username": str, "points": int}, ...]``.
+    """
+    scores = load_leaderboard(data_dir)
+    classement = [
+        {"username": username, "points": points}
+        for username, points in scores.items()
+    ]
+    classement.sort(key=lambda entry: entry["points"], reverse=True)
+    return classement
+
+
+
 def simuler_course(race: Race, data_dir: str = None):
     """Simule une course de chevaux et sauvegarde l'état"""
     pmu_lock = _get_pmu_lock() if data_dir else None
@@ -251,15 +320,18 @@ def simuler_course(race: Race, data_dir: str = None):
         if gagnants:
             gagnant = max(gagnants, key=lambda c: c.position)
 
-            print("\n🏆 GAGNANT")
-            print(f"{gagnant.nom}")
-            print(f"Distance : {gagnant.position:.1f} m")
+            # print("\n🏆 GAGNANT")
+            # print(f"{gagnant.nom}")
+            # print(f"Distance : {gagnant.position:.1f} m")
             
             race.status = RaceStatus.TERMINEE
             race.gagnant = gagnant.nom
             if data_dir:
                 with pmu_lock:
                     race.save_to_file(data_dir)
+                    # Attribuer 1 point à chaque parieur ayant misé sur le
+                    # cheval gagnant (mise à jour du leaderboard.json).
+                    update_leaderboard_for_race(race, data_dir)
             return
         
         time.sleep(1)
@@ -268,14 +340,14 @@ def simuler_course(race: Race, data_dir: str = None):
 # Exemple de chevaux
 
 chevaux_exemple = [
-    Cheval("Tornado", 85, 90, 80, 75, 90, 5, 0),
+    Cheval("Tornafion", 85, 90, 80, 75, 90, 5, 0),
     Cheval("Flash", 90, 75, 70, 80, 85, 6, 20),
     Cheval("Comete", 80, 85, 95, 70, 88, 4, 5),
     Cheval("Eclair", 95, 70, 65, 90, 80, 8, 40),
     Cheval("Tempete", 88, 82, 75, 85, 92, 5, 10),
-    Cheval("Ouragan", 92, 78, 68, 88, 83, 7, 30),
+    Cheval("Ouraken", 92, 78, 68, 88, 83, 7, 30),
     Cheval("Foudre", 87, 88, 85, 72, 90, 4, 8),
-    Cheval("Zephyr", 83, 91, 90, 78, 87, 6, 15),
+    Cheval("Delfino", 83, 91, 90, 78, 87, 6, 15),
 ]
 
 

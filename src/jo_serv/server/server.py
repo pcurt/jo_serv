@@ -71,6 +71,7 @@ from jo_serv.tools.pmu import (
     get_all_races,
     get_last_finished_race,
     get_next_race_id,
+    get_leaderboard,
     save_bet,
 )
 
@@ -1053,6 +1054,8 @@ def create_server(data_dir: str) -> Flask:
                 # course terminée (peut être None si aucune course finie).
                 if isinstance(latest_race, dict):
                     latest_race["last_results"] = get_last_finished_race(data_dir)
+                    # Ajouter le classement des parieurs (leaderboard.json)
+                    latest_race["leaderboard"] = get_leaderboard(data_dir)
                 return make_response(latest_race)
             except Exception as e:
                 logger.error(f"Erreur PMU GET: {e}")
@@ -1113,6 +1116,29 @@ def create_server(data_dir: str) -> Flask:
                 pmu_mutex.release()
 
         return Response(response="Erreur sur endpoint PMU history", status=404)
+
+    @app.route("/pmu-leaderboard", methods=["GET"])
+    def pmu_leaderboard() -> Response:
+        """Classement PMU endpoint
+
+        Returns:
+            Response: Le classement des parieurs trié par points décroissants
+        """
+        if request.method == "GET":
+            pmu_mutex.acquire()
+            try:
+                logger.info("GET on /pmu-leaderboard")
+                leaderboard = get_leaderboard(data_dir)
+                return make_response(
+                    {"leaderboard": leaderboard, "total": len(leaderboard)}
+                )
+            except Exception as e:
+                logger.error(f"Erreur PMU leaderboard GET: {e}")
+                return Response(response="Erreur serveur", status=500)
+            finally:
+                pmu_mutex.release()
+
+        return Response(response="Erreur sur endpoint PMU leaderboard", status=404)
 
     @app.route("/life", methods=["POST", "GET"])
     def life() -> Response:

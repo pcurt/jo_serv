@@ -190,12 +190,28 @@ class Race:
         return Race.from_dict(data)
 
 
+def _get_pmu_lock():
+    """Return the shared PMU lock defined in the server module.
+
+    The import is performed lazily inside the function on purpose: ``server.py``
+    imports this module at load time (``from jo_serv.tools.pmu import ...``)
+    *before* it defines ``pmu_mutex``. A module-level import here would
+    therefore create a circular import. By the time these functions actually
+    run, ``server.py`` is fully initialised and the lock is available.
+    """
+    from jo_serv.server.server import pmu_mutex
+
+    return pmu_mutex
+
+
 def simuler_course(race: Race, data_dir: str = None):
     """Simule une course de chevaux et sauvegarde l'état"""
-    
+    pmu_lock = _get_pmu_lock() if data_dir else None
+
     race.status = RaceStatus.EN_COURS
     if data_dir:
-        race.save_to_file(data_dir)
+        with pmu_lock:
+            race.save_to_file(data_dir)
 
     while True:
         race.tour += 1
@@ -215,7 +231,8 @@ def simuler_course(race: Race, data_dir: str = None):
 
         # Sauvegarde l'état après chaque tour
         if data_dir:
-            race.save_to_file(data_dir)
+            with pmu_lock:
+                race.save_to_file(data_dir)
 
         vivants = [c for c in race.chevaux if not c.mort]
 
@@ -223,7 +240,8 @@ def simuler_course(race: Race, data_dir: str = None):
             print("\nTous les chevaux sont hors course.")
             race.status = RaceStatus.TERMINEE
             if data_dir:
-                race.save_to_file(data_dir)
+                with pmu_lock:
+                    race.save_to_file(data_dir)
             return
 
         gagnants = [c for c in vivants if c.position >= race.distance]
@@ -238,7 +256,8 @@ def simuler_course(race: Race, data_dir: str = None):
             race.status = RaceStatus.TERMINEE
             race.gagnant = gagnant.nom
             if data_dir:
-                race.save_to_file(data_dir)
+                with pmu_lock:
+                    race.save_to_file(data_dir)
             return
         
         time.sleep(1)
@@ -263,6 +282,7 @@ def pmu_process(data_dir: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("PMU process start")
 
+    pmu_lock = _get_pmu_lock()
     race_counter = 1
 
     while True:
@@ -286,19 +306,27 @@ def pmu_process(data_dir: str) -> None:
         ]
         
         race = Race(race_id=race_id, chevaux=chevaux_course, distance=2000)
-        race.save_to_file(data_dir)
+        with pmu_lock:
+            race.save_to_file(data_dir)
         
         cpt = 0
         while (cpt < COURSE_INTERVAL_S):
             cpt += 1
             time.sleep(1)
-            race.course_suivante = COURSE_INTERVAL_S - cpt
-            race.save_to_file(data_dir)  # Sauvegarder pour mettre à jour course_suivante
+            # Recharger depuis le fichier pour ne pas écraser les paris
+            # enregistrés par save_bet pendant le compte à rebours.
+            # L'opération lecture + mise à jour + écriture est protégée par
+            # pmu_lock afin d'être atomique vis-à-vis de save_bet.
+            with pmu_lock:
+                race = Race.load_from_file(data_dir, race_id)
+                race.course_suivante = COURSE_INTERVAL_S - cpt
+                race.save_to_file(data_dir)  # met à jour course_suivante
 
         # Recharger la course depuis le fichier pour récupérer les paris enregistrés
-        race = Race.load_from_file(data_dir, race_id)
-        race.course_suivante = 0
-        race.save_to_file(data_dir) 
+        with pmu_lock:
+            race = Race.load_from_file(data_dir, race_id)
+            race.course_suivante = 0
+            race.save_to_file(data_dir)
         total_paris = sum(len(cheval.paris) for cheval in race.chevaux)
         logger.info(f"Course {race_id}: {total_paris} paris enregistrés")
         

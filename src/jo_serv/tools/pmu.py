@@ -361,6 +361,58 @@ def get_latest_race(data_dir: str) -> Dict:
         return json.load(f)
 
 
+def get_last_finished_race(data_dir: str) -> Dict:
+    """Récupère les résultats de la dernière course terminée.
+
+    Renvoie un dictionnaire décrivant la dernière course ``TERMINEE`` avec le
+    cheval gagnant et les listes des parieurs gagnants / perdants :
+
+    ``{
+        "race_id": str,
+        "gagnant": str | None,
+        "winners": [{"username": str, "cheval": str}, ...],
+        "losers": [{"username": str, "cheval": str}, ...],
+    }``
+
+    Renvoie ``None`` si aucune course n'est encore terminée.
+    """
+    import glob
+
+    race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
+    if not race_files:
+        return None
+
+    # Parcourir du plus récent au plus ancien pour trouver la dernière
+    # course effectivement terminée.
+    for race_file in sorted(race_files, key=os.path.getmtime, reverse=True):
+        with open(race_file, "r", encoding="utf-8") as f:
+            race_data = json.load(f)
+
+        if race_data.get("status") != RaceStatus.TERMINEE.value:
+            continue
+
+        gagnant = race_data.get("gagnant")
+        winners = []
+        losers = []
+        for cheval in race_data.get("chevaux", []):
+            nom = cheval.get("nom")
+            for username in cheval.get("paris", []):
+                parieur = {"username": username, "cheval": nom}
+                if nom == gagnant:
+                    winners.append(parieur)
+                else:
+                    losers.append(parieur)
+
+        return {
+            "race_id": race_data.get("race_id"),
+            "gagnant": gagnant,
+            "winners": winners,
+            "losers": losers,
+        }
+
+    return None
+
+
 def get_all_races(data_dir: str) -> List[Dict]:
     """Récupère toutes les courses enregistrées"""
     import glob

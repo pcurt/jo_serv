@@ -69,6 +69,7 @@ from jo_serv.tools.match_mgmt import (
 from jo_serv.tools.pmu import (
     get_latest_race,
     get_all_races,
+    get_last_finished_race,
     get_next_race_id,
     save_bet,
 )
@@ -1048,6 +1049,10 @@ def create_server(data_dir: str) -> Flask:
             try:
                 # Renvoyer la dernière course
                 latest_race = get_latest_race(data_dir)
+                # Ajouter les parieurs gagnants/perdants de la dernière
+                # course terminée (peut être None si aucune course finie).
+                if isinstance(latest_race, dict):
+                    latest_race["last_results"] = get_last_finished_race(data_dir)
                 return make_response(latest_race)
             except Exception as e:
                 logger.error(f"Erreur PMU GET: {e}")

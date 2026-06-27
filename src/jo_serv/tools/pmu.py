@@ -376,17 +376,32 @@ def get_all_races(data_dir: str) -> List[Dict]:
 
 
 def get_next_race_id(data_dir: str) -> str:
-    """Récupère l'ID de la prochaine course en attente"""
+    """Récupère l'ID de la course actuellement ouverte aux paris.
+
+    On se base sur la course la plus récente (même logique que
+    ``get_latest_race`` et que ce que voit le client via GET /pmu), et non sur
+    la plus ancienne course ``EN_ATTENTE``. Sinon les paris pouvaient être
+    dirigés vers un ancien fichier resté en ``EN_ATTENTE`` (par ex. après un
+    arrêt du serveur pendant un compte à rebours), ce qui faisait que la course
+    en cours affichait « 0 pari » alors que le pari avait bien été enregistré
+    ailleurs.
+    """
     import glob
-    
+
     race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
-    
-    for race_file in sorted(race_files, key=os.path.getmtime):
-        with open(race_file, "r", encoding="utf-8") as f:
-            race_data = json.load(f)
-            if race_data.get("status") == RaceStatus.EN_ATTENTE.value:
-                return race_data.get("race_id")
-    
+
+    if not race_files:
+        return None
+
+    # La course courante est toujours la plus récemment modifiée
+    # (pmu_process réécrit son fichier chaque seconde pendant le compte à rebours).
+    latest_file = max(race_files, key=os.path.getmtime)
+    with open(latest_file, "r", encoding="utf-8") as f:
+        race_data = json.load(f)
+
+    if race_data.get("status") == RaceStatus.EN_ATTENTE.value:
+        return race_data.get("race_id")
+
     return None
 
 

@@ -97,44 +97,11 @@ class Cheval:
         if self.mort:
             return
 
-        fatigue = self.position / max(self.endurance * 20, 1)
-
-        performance = self.calcul_performance()
-
-        performance *= max(0.3, 1 - fatigue * 0.3)
-
-        # Aléatoire
-        performance += random.uniform(-10, 10)
-
-        # Risque de blessure
-        risque_blessure = (
-            0.001
-            + self.age * 0.0002
-            + self.dopage * 0.0005
-            + fatigue * 0.01
-        )
-
-        if not self.blesse and random.random() < risque_blessure:
-            self.blesse = True
-            print(f"⚠️ {self.nom} se blesse !")
-
-        if self.blesse:
-            performance *= 0.5
-
-        # Risque de décès
-        risque_deces = (
-            0.00001
-            + self.age * 0.000005
-            + self.dopage * 0.00001
-        )
-
-        if random.random() < risque_deces:
-            self.mort = True
-            print(f"💀 {self.nom} décède pendant la course.")
-            return
-
-        #avance = max(0, performance / 2) # about 1min course
-        avance = max(0, performance * 4)  # about 20s course
+        # Distribution équitable : chaque cheval avance d'une valeur aléatoire
+        # tirée de la même distribution pour tous, sans tenir compte de ses
+        # statistiques. Tous les chevaux ont donc exactement la même chance de
+        # gagner, tout en continuant à progresser à chaque tour.
+        avance = random.uniform(100, 500)
 
         self.position += avance
 

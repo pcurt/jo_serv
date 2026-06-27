@@ -78,30 +78,13 @@ class Cheval:
         cheval.paris = data.get("paris", [])
         return cheval
 
-    def calcul_performance(self):
-
-        performance = (
-            self.vitesse * 0.35
-            + self.entrainement * 0.25
-            + self.endurance * 0.20
-            + self.sabot * 0.10
-            + self.sante * 0.10
-        )
-
-        performance += self.dopage * 0.15
-
-        return performance
 
     def avancer(self, distance_course):
-
-        if self.mort:
-            return
-
         # Distribution équitable : chaque cheval avance d'une valeur aléatoire
         # tirée de la même distribution pour tous, sans tenir compte de ses
         # statistiques. Tous les chevaux ont donc exactement la même chance de
         # gagner, tout en continuant à progresser à chaque tour.
-        avance = random.uniform(100, 500)
+        avance = random.uniform(distance_course * 0.01, distance_course * 0.1)
 
         self.position += avance
 
@@ -260,29 +243,11 @@ def simuler_course(race: Race, data_dir: str = None):
         for cheval in race.chevaux:
             cheval.avancer(race.distance)
 
-            if not cheval.mort:
-                print(
-                    f"{cheval.nom:<10} "
-                    f"{cheval.position:>7.1f} m"
-                    f"{' (blessé)' if cheval.blesse else ''}"
-                )
-
         # Sauvegarde l'état après chaque tour
         if data_dir:
             with pmu_lock:
                 race.save_to_file(data_dir)
-
-        vivants = [c for c in race.chevaux if not c.mort]
-
-        if not vivants:
-            print("\nTous les chevaux sont hors course.")
-            race.status = RaceStatus.TERMINEE
-            if data_dir:
-                with pmu_lock:
-                    race.save_to_file(data_dir)
-            return
-
-        gagnants = [c for c in vivants if c.position >= race.distance]
+        gagnants = [c for c in race.chevaux if c.position >= race.distance]
 
         if gagnants:
             gagnant = max(gagnants, key=lambda c: c.position)
@@ -308,13 +273,13 @@ def simuler_course(race: Race, data_dir: str = None):
 
 chevaux_exemple = [
     Cheval("Tornafion", 85, 90, 80, 75, 90, 5, 0),
-    Cheval("Flash", 90, 75, 70, 80, 85, 6, 20),
+    Cheval("Cluedo", 90, 75, 70, 80, 85, 6, 20),
     Cheval("Comete", 80, 85, 95, 70, 88, 4, 5),
     Cheval("Eclair", 95, 70, 65, 90, 80, 8, 40),
     Cheval("Tempete", 88, 82, 75, 85, 92, 5, 10),
     Cheval("Ouraken", 92, 78, 68, 88, 83, 7, 30),
-    Cheval("Foudre", 87, 88, 85, 72, 90, 4, 8),
     Cheval("Delfino", 83, 91, 90, 78, 87, 6, 15),
+    Cheval("Florence", 87, 88, 85, 72, 90, 4, 8),
 ]
 
 

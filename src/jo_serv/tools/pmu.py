@@ -177,14 +177,16 @@ class Race:
 
     def save_to_file(self, data_dir: str) -> None:
         """Sauvegarde la course dans un fichier JSON"""
-        filepath = os.path.join(data_dir, f"pmu_race/pmu_race_{self.race_id}.json")
+        race_dir = os.path.join(data_dir, "pmu_race")
+        os.makedirs(race_dir, exist_ok=True)
+        filepath = os.path.join(race_dir, f"pmu_race_{self.race_id}.json")
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
 
     @staticmethod
     def load_from_file(data_dir: str, race_id: str) -> 'Race':
         """Charge une course depuis un fichier JSON"""
-        filepath = os.path.join(data_dir, f"pmu_race/pmu_race_{race_id}.json")
+        filepath = os.path.join(data_dir, "pmu_race", f"pmu_race_{race_id}.json")
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         return Race.from_dict(data)
@@ -417,5 +419,8 @@ def save_bet(data_dir: str, race_id: str, username: str, cheval_nom: str) -> boo
                 return True
         
         return False  # Cheval non trouvé
-    except Exception:
+    except Exception as e:
+        logging.getLogger(__name__).exception(
+            f"Erreur lors de l'enregistrement du pari ({username} -> {cheval_nom}): {e}"
+        )
         return False

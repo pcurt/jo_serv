@@ -7,7 +7,9 @@ from typing import Any, List, Dict
 import random
 import os
 
-COURSE_INTERVAL_S = 10  # Intervalle entre les courses en secondes
+COURSE_INTERVAL_S = 3600  # Intervalle entre les courses en secondes; 1 par heure
+COURSE_DURATION_S = 30  # Durée de la course en secondes
+COURSE_TERMINEE_S = 15  # Durée d'affichage du gagnant avant la prochaine course
 LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
 
 class RaceStatus(Enum):
@@ -84,8 +86,11 @@ class Cheval:
         # tirée de la même distribution pour tous, sans tenir compte de ses
         # statistiques. Tous les chevaux ont donc exactement la même chance de
         # gagner, tout en continuant à progresser à chaque tour.
-        avance = random.uniform(distance_course * 0.01, distance_course * 0.1)
+        # use COURSE_DURATION_S to scale the advance based on the course duration
 
+        # avance = random.uniform(distance_course * 0.01, distance_course * 0.1)
+        # Scale the advance based on the course duration
+        avance = random.uniform(distance_course / (COURSE_DURATION_S * 5), distance_course / COURSE_DURATION_S)
         self.position += avance
 
 
@@ -343,7 +348,7 @@ def pmu_process(data_dir: str) -> None:
 
         # For debug to wait for results
         
-        time.sleep(COURSE_INTERVAL_S)
+        time.sleep(COURSE_TERMINEE_S)
 
         race_counter += 1
 

@@ -1076,7 +1076,7 @@ def create_server(data_dir: str) -> Flask:
                 # Enregistrer le pari
                 if save_bet(data_dir, next_race_id, username, cheval):
                     logger.info(f"Pari enregistré: {username} -> {cheval} (course {next_race_id})")
-                    return Response(response="Pari enregistré", status=200)
+                    return Response(response=f"Pari enregistré course {next_race_id}", status=200)
                 else:
                     logger.warning(f"Impossible d'enregistrer le pari: course déjà partie")
                     return Response(response="La course est déjà partie, pari refusé", status=403)

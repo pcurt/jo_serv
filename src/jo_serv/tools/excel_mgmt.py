@@ -36,7 +36,7 @@ def get_file_name(sport_name: Any, data_dir: str) -> Any:
 def get_athletes(sport_votes: Any, athletes: Any) -> list:
     athlete_id = 0
     athletes_list = []
-    yes_list = ("Participant", "Coureur", "Cuisinier (tout seul ou en equipe)", "Chaud")
+    yes_list = ("Participant", "Coureur", "Cuisinier (tout seul ou en equipe)", "Chaud", "Oui", "oui")
     for vote in sport_votes:
         if vote in yes_list:
             athletes_list.append(athletes[str(athlete_id)])

@@ -177,14 +177,14 @@ class Race:
 
     def save_to_file(self, data_dir: str) -> None:
         """Sauvegarde la course dans un fichier JSON"""
-        filepath = os.path.join(data_dir, f"pmu_race_{self.race_id}.json")
+        filepath = os.path.join(data_dir, f"pmu_race/pmu_race_{self.race_id}.json")
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
 
     @staticmethod
     def load_from_file(data_dir: str, race_id: str) -> 'Race':
         """Charge une course depuis un fichier JSON"""
-        filepath = os.path.join(data_dir, f"pmu_race_{race_id}.json")
+        filepath = os.path.join(data_dir, f"pmu_race/pmu_race_{race_id}.json")
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         return Race.from_dict(data)
@@ -319,7 +319,7 @@ def get_latest_race(data_dir: str) -> Dict:
     """Récupère la dernière course enregistrée"""
     import glob
     
-    race_files = glob.glob(os.path.join(data_dir, "pmu_race_*.json"))
+    race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
     
     if not race_files:
         return {"error": "Aucune course disponible"}
@@ -335,7 +335,7 @@ def get_all_races(data_dir: str) -> List[Dict]:
     """Récupère toutes les courses enregistrées"""
     import glob
     
-    race_files = glob.glob(os.path.join(data_dir, "pmu_race_*.json"))
+    race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
     
     races = []
     for race_file in sorted(race_files, key=os.path.getmtime, reverse=True):
@@ -349,7 +349,7 @@ def get_next_race_id(data_dir: str) -> str:
     """Récupère l'ID de la prochaine course en attente"""
     import glob
     
-    race_files = glob.glob(os.path.join(data_dir, "pmu_race_*.json"))
+    race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
     
     for race_file in sorted(race_files, key=os.path.getmtime):
         with open(race_file, "r", encoding="utf-8") as f:

@@ -25,30 +25,33 @@ from jo_serv.tools.tools import (
 
 
 def parse_excel(data_dir: str) -> None:
-    path = os.path.join(f"{data_dir}/JO_2025.xlsx")
+    path = os.path.join(f"{data_dir}/JO_2026.xlsx")
     excel_sheet = pandas.read_excel(path, sheet_name=None, engine="openpyxl")
-    export_path = os.path.join(f"{data_dir}/JO_2025_export.xlsx")
+    export_path = os.path.join(f"{data_dir}/JO_2026_export.xlsx")
     athletes = create_empty_dict(excel_sheet)
 
     useful_data = ("Nom Prénom",
                    "Sexe")
     sports_name = ("10 km de Meyssiez",
                    "Volley",
-                   "Mario Kart",
                    "Concours de pizza",
+                   "Activité1",
+                   "Activité2",
                    "Waterpolo",
-                   "Spikeball",
                    "Course d'orientation",
-                   "Beer pong",
-                   "Lancer de tong",
-                   "Blindtest",
-                   "Babyfoot",
-                   "Flechette",
-                   "Slackline",
-                   "Polish Horseshoes",
-                   "Ventriglisse",
-                   "100m Ricard",
+                   "Duathlon",
                    "Blitz",
+                   "Krossfit",
+                   "Flechette",
+                   "Babyfoot",
+                   "Dodgeball",
+                   "100m Ricard",
+                   "Beer pong",
+                   "Spikeball",
+                   "Polish Horseshoes",
+                   "Blindtest",
+                   "Slackline",
+                   "Lancer de tong",
                    "Petanque",
                    )
 
@@ -87,26 +90,29 @@ def parse_excel(data_dir: str) -> None:
 
 
 def parse_exported_excel(data_dir: str) -> None:
-    path = os.path.join(f"{data_dir}/JO_2025_export.xlsx")
+    path = os.path.join(f"{data_dir}/JO_2026_export.xlsx")
 
     sports_name = ("10 km de Meyssiez",
                    "Volley",
                    "Concours de pizza",
+                   "Activité1",
+                   "Activité2",
                    "Waterpolo",
-                   "Spikeball",
                    "Course d'orientation",
-                   "Beer pong",
-                   "Lancer de tong",
-                   "Blindtest",
-                   "Babyfoot",
-                   "Flechette",
-                   "Slackline",
-                   "Polish Horseshoes",
-                   "Ventriglisse",
-                   "100m Ricard",
+                   "Duathlon",
                    "Blitz",
+                   "Krossfit",
+                   "Flechette",
+                   "Babyfoot",
+                   "Dodgeball",
+                   "100m Ricard",
+                   "Beer pong",
+                   "Spikeball",
+                   "Polish Horseshoes",
+                   "Blindtest",
+                   "Slackline",
+                   "Lancer de tong",
                    "Petanque",
-                   "Mario Kart"
                    )
 
     for sport_name in sports_name:
@@ -150,8 +156,8 @@ def parse_exported_excel(data_dir: str) -> None:
             with open(f"{data_dir}/teams/{file_name}", "w") as file:
                 json.dump(pools, file, ensure_ascii=False)
         elif sport_config["Type"] == "Series":
-            status = "final"
-            states = ["final", "paris", "results"]
+            status = "series"
+            states = ["series", "paris", "results"]
             series = generate_series(teams_list["Teams"], sport_config)
             file_name = file_name[:-5] + "_series.json"
             with open(f"{data_dir}/teams/{file_name}", "w") as file:

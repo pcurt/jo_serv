@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, List, Dict
 import random
 import os
-from tools import send_notif
+from jo_serv.tools.tools import send_notif
 COURSE_INTERVAL_S = 900  # Intervalle entre les courses en secondes; 15 minutes
 COURSE_DURATION_S = 30  # Durée de la course en secondes
 COURSE_TERMINEE_S = 15  # Durée d'affichage du gagnant avant la prochaine course

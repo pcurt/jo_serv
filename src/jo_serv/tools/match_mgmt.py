@@ -336,9 +336,11 @@ def update_list(sport: str, data: dict, data_dir: str, serie_to_update: str) -> 
                     if serie["Level"] == level:
                         number_of_series += 1
                         for player in serie["Teams"]:
+                            if player["rank"] == 0:
+                                player["rank"] = 4
                             all_players.append(player)
-                all_players = sorted(all_players, key=lambda i: float(re.sub(r"[^\d.,]", "", i["score"].replace(",","."))))
-                all_players.reverse()
+                #all_players = sorted(all_players, key=lambda i: float(re.sub(r"[^\d.,]", "", i["score"].replace(",","."))))
+                #all_players.reverse()
                 all_players = sorted(all_players, key=lambda i: int(i["rank"]))[:required_players]
                 logger.info(all_players)
                 for i in range(teams_per_match):

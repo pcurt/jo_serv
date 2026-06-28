@@ -329,7 +329,7 @@ def pmu_process(data_dir: str) -> None:
             # L'opération lecture + mise à jour + écriture est protégée par
             # pmu_lock afin d'être atomique vis-à-vis de save_bet.
             if COURSE_INTERVAL_S - cpt == 120: # 2 minutes avant la course, on envoit une notif
-                send_notif('All', "La prochaine course commence dans 2 minutes ! Placez vos paris !", "🐎🐎🐎")
+                send_notif('all', "La prochaine course commence dans 2 minutes ! Placez vos paris !", "🐎🐎🐎", data_dir)
             with pmu_lock:
                 race = Race.load_from_file(data_dir, race_id)
                 race.course_suivante = COURSE_INTERVAL_S - cpt

@@ -6,8 +6,8 @@ from enum import Enum
 from typing import Any, List, Dict
 import random
 import os
-
-COURSE_INTERVAL_S = 30  # Intervalle entre les courses en secondes; 15 minutes
+from tools import send_notif
+COURSE_INTERVAL_S = 900  # Intervalle entre les courses en secondes; 15 minutes
 COURSE_DURATION_S = 30  # Durée de la course en secondes
 COURSE_TERMINEE_S = 15  # Durée d'affichage du gagnant avant la prochaine course
 LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
@@ -328,6 +328,8 @@ def pmu_process(data_dir: str) -> None:
             # enregistrés par save_bet pendant le compte à rebours.
             # L'opération lecture + mise à jour + écriture est protégée par
             # pmu_lock afin d'être atomique vis-à-vis de save_bet.
+            if COURSE_INTERVAL_S - cpt == 120: # 2 minutes avant la course, on envoit une notif
+                send_notif('All', "La prochaine course commence dans 2 minutes ! Placez vos paris !", "🐎🐎🐎")
             with pmu_lock:
                 race = Race.load_from_file(data_dir, race_id)
                 race.course_suivante = COURSE_INTERVAL_S - cpt

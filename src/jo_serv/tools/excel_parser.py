@@ -191,3 +191,36 @@ def parse_exported_excel(data_dir: str) -> None:
     for player in players:
         generate_account(data_dir, player)
         generate_event_list(player, data_dir)
+
+def print_athletes(data_dir: str) -> None:
+
+    athletes_list = []
+    for year in [2020, 2021, 2023, 2024, 2025, 2026]:
+        try:
+            useful_data = ("Nom Prénom",
+                        "Sexe")
+            path = os.path.join(f"{data_dir}/JO_{year}.xlsx")
+            excel_sheet = pandas.read_excel(path, sheet_name=None, engine="openpyxl")
+            athletes = create_empty_dict(excel_sheet)
+            for sheet in excel_sheet:
+                for column_name in excel_sheet[sheet]:
+                    if column_name in useful_data:
+                        athletes = store_infos(excel_sheet[sheet][column_name], athletes, column_name)
+
+            for index in athletes:
+                athlete = athletes[index]
+                if not any(ath["Player"] == athlete["Nom Prénom"] for ath in athletes_list):
+                    athletes_list.append(dict(Player=athlete["Nom Prénom"], Edition=1))
+                else:
+                    for ath in athletes_list:
+                        if ath["Player"] == athlete["Nom Prénom"]:
+                            ath["Edition"] += 1
+
+            print(year)
+            print(athletes_list)
+        except:
+            print(f"error {year}")
+    athletes_list = sorted(athletes_list, key=lambda d: d["Edition"])
+    print(athletes_list)
+    
+

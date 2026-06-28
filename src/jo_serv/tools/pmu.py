@@ -280,7 +280,7 @@ chevaux_exemple = [
     Cheval("Tornafion", 85, 90, 80, 75, 90, 5, 0),
     Cheval("Cluedo", 90, 75, 70, 80, 85, 6, 20),
     Cheval("Comete", 80, 85, 95, 70, 88, 4, 5),
-    Cheval("Eclair", 95, 70, 65, 90, 80, 8, 40),
+    Cheval("Whisky", 95, 70, 65, 90, 80, 8, 40),
     Cheval("Tempete", 88, 82, 75, 85, 92, 5, 10),
     Cheval("Ouraken", 92, 78, 68, 88, 83, 7, 30),
     Cheval("Delfino", 83, 91, 90, 78, 87, 6, 15),

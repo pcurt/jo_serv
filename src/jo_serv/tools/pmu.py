@@ -7,7 +7,7 @@ from typing import Any, List, Dict
 import random
 import os
 
-COURSE_INTERVAL_S = 900  # Intervalle entre les courses en secondes; 15 minutes
+COURSE_INTERVAL_S = 30  # Intervalle entre les courses en secondes; 15 minutes
 COURSE_DURATION_S = 30  # Durée de la course en secondes
 COURSE_TERMINEE_S = 15  # Durée d'affichage du gagnant avant la prochaine course
 LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU

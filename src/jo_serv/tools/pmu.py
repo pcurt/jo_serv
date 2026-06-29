@@ -410,7 +410,6 @@ def pmu_process(data_dir: str) -> None:
 def get_latest_race(data_dir: str) -> Dict:
     """Récupère la dernière course enregistrée"""
     import glob
-    
     race_files = glob.glob(os.path.join(data_dir, "pmu_race/pmu_race_*.json"))
     
     if not race_files:

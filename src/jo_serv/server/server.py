@@ -1038,7 +1038,7 @@ def create_server(data_dir: str) -> Flask:
             )
 
         return Response(response="Error on shifumi", status=404)
-    @app.route("/pmu-push", methods=["GET"])
+    @app.route("/pmu-push", methods=["POST"])
     def pmu_push() -> Response:
         """pmu push endpoint
             The pmu push : every athlete can push their own  cheval
@@ -1048,7 +1048,9 @@ def create_server(data_dir: str) -> Flask:
         try:
             # Pas de prise du verrou fichier (pmu_mutex) : l'incrément est fait
             # en mémoire, c'est instantané et supporte de nombreux clics.
-            Cheval.push_cheval(request.data.decode("utf-8"))
+            json_data = json.loads(request.data.decode("utf-8"))
+            cheval = json_data.get("cheval")
+            Cheval.push_cheval(cheval)
             return Response(response="Cheval poussé", status=200)
         except Exception as e:
             logger.error(f"Erreur PMU push: {e}")
@@ -1080,7 +1082,6 @@ def create_server(data_dir: str) -> Flask:
             pmu_mutex.acquire()
             try:
                 decode_data = request.data.decode("utf-8")
-                print(decode_data)
                 json_data = json.loads(decode_data)
                 username = json_data.get("username")
                 cheval = json_data.get("cheval")

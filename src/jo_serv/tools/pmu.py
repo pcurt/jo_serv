@@ -21,6 +21,7 @@ LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
 # légèrement le cheval. Le verrou dédié est volontairement distinct de
 # ``pmu_mutex`` pour ne jamais bloquer les écritures de fichiers.
 PMU_PUSHES: Dict[str, int] = {}
+PMU_PUSHES_USERS: Dict[str, int] = {}
 PMU_PUSH_MUTEX = Lock()
 PMU_NOTIF_MUTEX = Lock()  # Mutex 
 MAX_BOOST_PER_TICK = 12
@@ -134,7 +135,7 @@ class Cheval:
         self.position += avance
 
     @staticmethod
-    def push_cheval(cheval_name: str) -> None:
+    def push_cheval(username:str, cheval_name: str) -> None:
         """Enregistre un clic ("push") sur un cheval.
 
         Très optimisé : on incrémente uniquement un compteur en mémoire,
@@ -143,9 +144,13 @@ class Cheval:
         sera appliqué au prochain tour de simulation via ``avancer``.
         """
         nom = cheval_name.strip().strip('"')
-        print("Pushed cheval:", nom)
+        # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
             PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
+            if username not in PMU_PUSHES_USERS:
+                PMU_PUSHES_USERS[username] = {}
+            PMU_PUSHES_USERS[username][nom] = PMU_PUSHES_USERS[username].get(nom, 0) + 1
+            return PMU_PUSHES_USERS
 class Race:
     def __init__(self, race_id: str, chevaux: List[Cheval], distance: int = 2000):
         self.race_id = race_id

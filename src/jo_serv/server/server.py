@@ -1051,8 +1051,9 @@ def create_server(data_dir: str) -> Flask:
             # en mémoire, c'est instantané et supporte de nombreux clics.
             json_data = json.loads(request.data.decode("utf-8"))
             cheval = json_data.get("cheval")
-            Cheval.push_cheval(cheval)
-            return Response(response="Cheval poussé", status=200)
+            username = json_data.get("username", "unknown")
+            cur_status = Cheval.push_cheval(username, cheval)
+            return Response(response=cur_status, status=200)
         except Exception as e:
             logger.error(f"Erreur PMU push: {e}")
             return Response(response="Erreur serveur", status=500)
@@ -1094,7 +1095,6 @@ def create_server(data_dir: str) -> Flask:
         Returns:
             Response: The pmu information
         """
-
         if request.method == "GET":
             try:
                 # Renvoyer la dernière course

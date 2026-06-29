@@ -140,6 +140,7 @@ class Cheval:
         sera appliqué au prochain tour de simulation via ``avancer``.
         """
         nom = cheval_name.strip().strip('"')
+        print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
             PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
 class Race:

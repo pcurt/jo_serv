@@ -287,9 +287,8 @@ def simuler_course(race: Race, data_dir: str = None):
     if data_dir:
         with pmu_lock:
             race.save_to_file(data_dir)
-    with PMU_PUSH_MUTEX:
-        # reset pushes
-        PMU_PUSHES.clear()
+    # Nouvelle course : on repart de zéro pour les clics accumulés.
+    reset_pushes()
     while True:
         race.tour += 1
 
@@ -370,8 +369,6 @@ def pmu_process(data_dir: str) -> None:
         race = Race(race_id=race_id, chevaux=chevaux_course, distance=2000)
         with pmu_lock:
             race.save_to_file(data_dir)
-        # Nouvelle course : on repart de zéro pour les clics accumulés.
-        reset_pushes()
         
         cpt = 0
         while (cpt < COURSE_INTERVAL_S):
@@ -397,6 +394,7 @@ def pmu_process(data_dir: str) -> None:
         logger.info(f"Course {race_id}: {total_paris} paris enregistrés")
         
         # Simulation de la course
+
         simuler_course(race, data_dir)
         
         logger.info(f"Course {race_id} terminée. Gagnant: {race.gagnant}")

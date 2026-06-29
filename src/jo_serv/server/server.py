@@ -73,6 +73,7 @@ from jo_serv.tools.pmu import (
     get_next_race_id,
     get_leaderboard,
     save_bet,
+    Cheval
 )
 
 CANVA_SIZE = 50
@@ -1037,6 +1038,21 @@ def create_server(data_dir: str) -> Flask:
             )
 
         return Response(response="Error on shifumi", status=404)
+    @app.route("/pmu-push", methods=["GET"])
+    def pmu_push() -> Response:
+        """pmu push endpoint
+            The pmu push : every athlete can push their own  cheval
+        Returns:
+            Response: The operation status
+        """
+        try:
+            # Pas de prise du verrou fichier (pmu_mutex) : l'incrément est fait
+            # en mémoire, c'est instantané et supporte de nombreux clics.
+            Cheval.push_cheval(request.data.decode("utf-8"))
+            return Response(response="Cheval poussé", status=200)
+        except Exception as e:
+            logger.error(f"Erreur PMU push: {e}")
+            return Response(response="Erreur serveur", status=500)
 
     @app.route("/pmu", methods=["GET", "POST"])
     def pmu() -> Response:

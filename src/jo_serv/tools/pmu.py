@@ -3,6 +3,7 @@ import logging
 import math
 import time
 from enum import Enum
+from threading import Lock
 from typing import Any, List, Dict
 import random
 import os
@@ -11,6 +12,35 @@ COURSE_INTERVAL_S = 900  # Intervalle entre les courses en secondes; 15 minutes
 COURSE_DURATION_S = 30  # Durée de la course en secondes
 COURSE_TERMINEE_S = 15  # Durée d'affichage du gagnant avant la prochaine course
 LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
+
+# Compteur de "pushes" en mémoire (nom_cheval -> nombre de clics).
+# Les clics des utilisateurs sont accumulés ici plutôt que d'écrire le fichier
+# de course à chaque clic : c'est beaucoup plus rapide sous forte charge.
+# A chaque tour de simulation, ``avancer`` consomme ces pushes et les ajoute
+# (1 par clic) aux bornes min/max du tirage aléatoire pour aider très
+# légèrement le cheval. Le verrou dédié est volontairement distinct de
+# ``pmu_mutex`` pour ne jamais bloquer les écritures de fichiers.
+PMU_PUSHES: Dict[str, int] = {}
+PMU_PUSH_MUTEX = Lock()
+
+
+def consume_pushes(nom: str) -> int:
+    """Récupère puis remet à zéro le nombre de pushes d'un cheval.
+
+    Opération mémoire pure protégée par ``PMU_PUSH_MUTEX`` : très rapide,
+    indépendante des accès disque.
+    """
+    with PMU_PUSH_MUTEX:
+        count = PMU_PUSHES.get(nom, 0)
+        if count:
+            PMU_PUSHES[nom] = 0
+        return count
+
+
+def reset_pushes() -> None:
+    """Réinitialise tous les compteurs de pushes (nouvelle course)."""
+    with PMU_PUSH_MUTEX:
+        PMU_PUSHES.clear()
 
 class RaceStatus(Enum):
     EN_ATTENTE = "en_attente"
@@ -90,10 +120,28 @@ class Cheval:
 
         # avance = random.uniform(distance_course * 0.01, distance_course * 0.1)
         # Scale the advance based on the course duration
-        avance = random.uniform(distance_course / (COURSE_DURATION_S * 5), distance_course / COURSE_DURATION_S)
+        # Chaque clic accumulé pousse très légèrement le cheval : on ajoute 1
+        # par clic aux bornes min/max du tirage. Les pushes sont consommés ici
+        # (lecture + reset atomiques) sans aucun accès disque.
+        boost = consume_pushes(self.nom)
+        avance = random.uniform(
+            distance_course / (COURSE_DURATION_S * 5) + boost,
+            distance_course / COURSE_DURATION_S + boost,
+        )
         self.position += avance
 
+    @staticmethod
+    def push_cheval(cheval_name: str) -> None:
+        """Enregistre un clic ("push") sur un cheval.
 
+        Très optimisé : on incrémente uniquement un compteur en mémoire,
+        protégé par ``PMU_PUSH_MUTEX``. Aucun fichier n'est lu/écrit ici, ce
+        qui permet d'absorber un grand nombre de clics simultanés. Le boost
+        sera appliqué au prochain tour de simulation via ``avancer``.
+        """
+        nom = cheval_name.strip().strip('"')
+        with PMU_PUSH_MUTEX:
+            PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
 class Race:
     def __init__(self, race_id: str, chevaux: List[Cheval], distance: int = 2000):
         self.race_id = race_id
@@ -238,7 +286,9 @@ def simuler_course(race: Race, data_dir: str = None):
     if data_dir:
         with pmu_lock:
             race.save_to_file(data_dir)
-
+    with PMU_PUSH_MUTEX:
+        # reset pushes
+        PMU_PUSHES.clear()
     while True:
         race.tour += 1
 
@@ -319,6 +369,8 @@ def pmu_process(data_dir: str) -> None:
         race = Race(race_id=race_id, chevaux=chevaux_course, distance=2000)
         with pmu_lock:
             race.save_to_file(data_dir)
+        # Nouvelle course : on repart de zéro pour les clics accumulés.
+        reset_pushes()
         
         cpt = 0
         while (cpt < COURSE_INTERVAL_S):
@@ -328,8 +380,8 @@ def pmu_process(data_dir: str) -> None:
             # enregistrés par save_bet pendant le compte à rebours.
             # L'opération lecture + mise à jour + écriture est protégée par
             # pmu_lock afin d'être atomique vis-à-vis de save_bet.
-            if COURSE_INTERVAL_S - cpt == 120: # 2 minutes avant la course, on envoit une notif
-                send_notif('all', "La prochaine course commence dans 2 minutes ! Placez vos paris !", "🐎🐎🐎", data_dir)
+            if COURSE_INTERVAL_S - cpt == 60: # 1 minute avant la course, on envoit une notif
+                send_notif('all', "La prochaine course commence dans 1 minute ! Placez vos paris !", "🐎🐎🐎", data_dir)
             with pmu_lock:
                 race = Race.load_from_file(data_dir, race_id)
                 race.course_suivante = COURSE_INTERVAL_S - cpt
@@ -367,9 +419,9 @@ def get_latest_race(data_dir: str) -> Dict:
     
     # Trier par timestamp (dernier fichier créé)
     latest_file = max(race_files, key=os.path.getmtime)
-    
-    with open(latest_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with _get_pmu_lock():
+        with open(latest_file, "r", encoding="utf-8") as f:
+            return json.load(f)
 
 
 def get_last_finished_race(data_dir: str) -> Dict:

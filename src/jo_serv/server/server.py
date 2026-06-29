@@ -1065,15 +1065,11 @@ def create_server(data_dir: str) -> Flask:
         """
         if request.method == "GET":
             try:
-                json_data = json.loads(request.data.decode("utf-8"))
-                username = json_data.get("username")
+                notif_data = {}
                 with PMU_NOTIF_MUTEX:
                     if os.path.exists(f"{data_dir}/pmu_notif.json"):
                         notif_data = json.load(open(f"{data_dir}/pmu_notif.json", "r"))
-                        enabled = notif_data.get(username, False)
-                    else:
-                        enabled = False
-                return make_response(dict(enabled=enabled))
+                return make_response(notif_data)
             except Exception as e:
                 logger.error(f"Erreur PMU notif GET: {e}")
                 return Response(response="Erreur serveur", status=500)

@@ -73,7 +73,8 @@ from jo_serv.tools.pmu import (
     get_next_race_id,
     get_leaderboard,
     save_bet,
-    Cheval
+    Cheval,
+    PMU_NOTIF_MUTEX
 )
 
 CANVA_SIZE = 50
@@ -1055,7 +1056,42 @@ def create_server(data_dir: str) -> Flask:
         except Exception as e:
             logger.error(f"Erreur PMU push: {e}")
             return Response(response="Erreur serveur", status=500)
-
+    @app.route("/pmu-notif", methods=["GET", "POST"])
+    def pmu_notif() -> Response:
+        """pmu notification endpoint
+            The pmu notification : every athlete can push their own  cheval
+        Returns:
+            Response: The operation status
+        """
+        if request.method == "GET":
+            try:
+                json_data = json.loads(request.data.decode("utf-8"))
+                username = json_data.get("username")
+                with PMU_NOTIF_MUTEX:
+                    if os.path.exists(f"{data_dir}/pmu_notif.json"):
+                        notif_data = json.load(open(f"{data_dir}/pmu_notif.json", "r"))
+                        enabled = notif_data.get(username, False)
+                    else:
+                        enabled = False
+                return make_response(dict(enabled=enabled))
+            except Exception as e:
+                logger.error(f"Erreur PMU notif GET: {e}")
+                return Response(response="Erreur serveur", status=500)
+        elif request.method == "POST":
+            try:
+                json_data = json.loads(request.data.decode("utf-8"))
+                enabled = json_data.get("enabled")
+                username = json_data.get("username")
+                with PMU_NOTIF_MUTEX:
+                    if os.path.exists(f"{data_dir}/pmu_notif.json") is False:
+                        json.dump({}, open(f"{data_dir}/pmu_notif.json", "w"))
+                    notif_data = json.load(open(f"{data_dir}/pmu_notif.json", "r"))
+                    notif_data[username] = enabled
+                    json.dump(notif_data, open(f"{data_dir}/pmu_notif.json", "w"))
+                return Response(response="Modif notification prise en compte", status=200)
+            except Exception as e:
+                logger.error(f"Erreur PMU notif: {e}")
+                return Response(response="Erreur serveur", status=500)
     @app.route("/pmu", methods=["GET", "POST"])
     def pmu() -> Response:
         """pmu endpoints

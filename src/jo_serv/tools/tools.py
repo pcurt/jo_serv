@@ -156,7 +156,7 @@ def parse_json(
                         list_to_append.append(filename.split(suffix)[0])
 
 
-def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0) -> None:
+def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0, exclude_list=[]) -> None:
     to = to.replace(" ", "")
     with open(f"{data_dir}/tokens.txt", "r") as tokens_file:
         tokens = tokens_file.readlines()
@@ -167,7 +167,8 @@ def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0) -> N
             if ":" in token:
                 for person in to.split(","):
                     if person == token.rsplit(":", 1)[1].replace("\n", ""):
-                        tokens_list.append(token)
+                        if person not in exclude_list:
+                            tokens_list.append(token)
     for token in tokens_list:
         if "ExponentPushToken" in token:
             data = {"to": token.split(":")[0], "title": title, "body": body, "badge": badge}

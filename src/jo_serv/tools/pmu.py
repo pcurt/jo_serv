@@ -22,6 +22,8 @@ LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
 # ``pmu_mutex`` pour ne jamais bloquer les écritures de fichiers.
 PMU_PUSHES: Dict[str, int] = {}
 PMU_PUSH_MUTEX = Lock()
+PMU_NOTIF_MUTEX = Lock()  # Mutex 
+
 
 
 def consume_pushes(nom: str) -> int:
@@ -379,7 +381,13 @@ def pmu_process(data_dir: str) -> None:
             # L'opération lecture + mise à jour + écriture est protégée par
             # pmu_lock afin d'être atomique vis-à-vis de save_bet.
             if COURSE_INTERVAL_S - cpt == 60: # 1 minute avant la course, on envoit une notif
-                send_notif('all', "La prochaine course commence dans 1 minute ! Placez vos paris !", "🐎🐎🐎", data_dir)
+                with PMU_NOTIF_MUTEX:
+                    if os.path.exists(f"{data_dir}/pmu_notif.json"):
+                        notif_data = json.load(open(f"{data_dir}/pmu_notif.json", "r"))
+                    else:
+                        notif_data = {}
+                    exclude_list = [x for x, enabled in notif_data.items() if not enabled]
+                send_notif('all', "La prochaine course commence dans 1 minute ! Placez vos paris !", "🐎🐎🐎", data_dir, exclude_list=exclude_list)
             with pmu_lock:
                 race = Race.load_from_file(data_dir, race_id)
                 race.course_suivante = COURSE_INTERVAL_S - cpt

@@ -168,6 +168,7 @@ def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0, excl
                 for person in to.split(","):
                     if person == token.rsplit(":", 1)[1].replace("\n", ""):
                         if person not in exclude_list:
+                            print(f"{person} is not in {exclude_list}")
                             tokens_list.append(token)
     for token in tokens_list:
         if "ExponentPushToken" in token:

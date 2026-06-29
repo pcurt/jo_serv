@@ -387,6 +387,7 @@ def pmu_process(data_dir: str) -> None:
                     else:
                         notif_data = {}
                     exclude_list = [x for x, enabled in notif_data.items() if not enabled]
+                print("Eclusion list:", exclude_list)
                 send_notif('all', "La prochaine course commence dans 1 minute ! Placez vos paris !", "🐎🐎🐎", data_dir, exclude_list=exclude_list)
             with pmu_lock:
                 race = Race.load_from_file(data_dir, race_id)

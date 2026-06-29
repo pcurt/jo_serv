@@ -125,7 +125,7 @@ class Cheval:
         # Chaque clic accumulé pousse très légèrement le cheval : on ajoute 1
         # par clic aux bornes min/max du tirage. Les pushes sont consommés ici
         # (lecture + reset atomiques) sans aucun accès disque.
-        boost = consume_pushes(self.nom)
+        boost = consume_pushes(self.nom) / 2 # we divide by 2 the boost!
         avance = random.uniform(
             distance_course / (COURSE_DURATION_S * 5) + boost,
             distance_course / COURSE_DURATION_S + boost,

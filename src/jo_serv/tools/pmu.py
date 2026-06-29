@@ -340,7 +340,7 @@ chevaux_exemple = [
     Cheval("Friedrich", 80, 85, 95, 70, 88, 4, 5),
     Cheval("Whisky", 95, 70, 65, 90, 80, 8, 40),
     Cheval("Maaaarc", 88, 82, 75, 85, 92, 5, 10),
-    Cheval("Ouraken", 92, 78, 68, 88, 83, 7, 30),
+    Cheval("Gazou", 92, 78, 68, 88, 83, 7, 30),
     Cheval("Delfino", 83, 91, 90, 78, 87, 6, 15),
     Cheval("Florence", 87, 88, 85, 72, 90, 4, 8),
 ]

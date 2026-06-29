@@ -1053,7 +1053,7 @@ def create_server(data_dir: str) -> Flask:
             cheval = json_data.get("cheval")
             username = json_data.get("username", "unknown")
             cur_status = Cheval.push_cheval(username, cheval)
-            return Response(response=cur_status, status=200)
+            return Response(response=json.dumps({"pushes": cur_status}), status=200)
         except Exception as e:
             logger.error(f"Erreur PMU push: {e}")
             return Response(response="Erreur serveur", status=500)

@@ -23,7 +23,7 @@ LEADERBOARD_FILENAME = "leaderboard.json"  # Classement des parieurs PMU
 PMU_PUSHES: Dict[str, int] = {}
 PMU_PUSH_MUTEX = Lock()
 PMU_NOTIF_MUTEX = Lock()  # Mutex 
-MAX_BOOST_PER_TICK = 8
+MAX_BOOST_PER_TICK = 12
 
 
 def consume_pushes(nom: str) -> int:
@@ -125,10 +125,10 @@ class Cheval:
         # Chaque clic accumulé pousse très légèrement le cheval : on ajoute 1
         # par clic aux bornes min/max du tirage. Les pushes sont consommés ici
         # (lecture + reset atomiques) sans aucun accès disque.
-        boost = consume_pushes(self.nom) / 2 # we divide by 2 the boost!
+        boost = consume_pushes(self.nom)
         boost = max(boost, MAX_BOOST_PER_TICK)
         avance = random.uniform(
-            distance_course / (COURSE_DURATION_S * 5),
+            distance_course / (COURSE_DURATION_S * 5) + boost/5,
             distance_course / COURSE_DURATION_S + boost,
         )
         self.position += avance

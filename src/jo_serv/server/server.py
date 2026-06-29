@@ -1062,7 +1062,6 @@ def create_server(data_dir: str) -> Flask:
         """
 
         if request.method == "GET":
-            pmu_mutex.acquire()
             try:
                 # Renvoyer la dernière course
                 latest_race = get_latest_race(data_dir)
@@ -1076,8 +1075,6 @@ def create_server(data_dir: str) -> Flask:
             except Exception as e:
                 logger.error(f"Erreur PMU GET: {e}")
                 return Response(response="Erreur serveur", status=500)
-            finally:
-                pmu_mutex.release()
 
         elif request.method == "POST":
             pmu_mutex.acquire()

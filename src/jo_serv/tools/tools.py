@@ -167,11 +167,12 @@ def send_notif(to: str, title: str, body: str, data_dir: str, badge: int=0, excl
             if ":" in token:
                 for person in to.split(","):
                     if person == token.rsplit(":", 1)[1].replace("\n", ""):
-                        if person not in exclude_list:
-                            print(f"{person} is not in {exclude_list}")
-                            tokens_list.append(token)
+                        tokens_list.append(token)
     for token in tokens_list:
         if "ExponentPushToken" in token:
+            if token.rsplit(":", 1)[1].replace("\n", "") in exclude_list:
+                logging.info(f"Excluding {token} from notification")
+                continue
             data = {"to": token.split(":")[0], "title": title, "body": body, "badge": badge}
             requests.post("https://exp.host/--/api/v2/push/send", data=data)
             logging.info(data)

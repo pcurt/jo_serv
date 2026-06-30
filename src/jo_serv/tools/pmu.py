@@ -146,10 +146,11 @@ class Cheval:
         nom = cheval_name.strip().strip('"')
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
-            PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
-            if username not in PMU_PUSHES_USERS:
-                PMU_PUSHES_USERS[username] = {}
-            PMU_PUSHES_USERS[username][nom] = PMU_PUSHES_USERS[username].get(nom, 0) + 1
+            if nom != "status": # status is only out of race to get the number of pushes by users
+                PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
+                if username not in PMU_PUSHES_USERS:
+                    PMU_PUSHES_USERS[username] = {}
+                PMU_PUSHES_USERS[username][nom] = PMU_PUSHES_USERS[username].get(nom, 0) + 1
             return PMU_PUSHES_USERS
 class Race:
     def __init__(self, race_id: str, chevaux: List[Cheval], distance: int = 2000):

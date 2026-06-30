@@ -44,6 +44,7 @@ def reset_pushes() -> None:
     """Réinitialise tous les compteurs de pushes (nouvelle course)."""
     with PMU_PUSH_MUTEX:
         PMU_PUSHES.clear()
+        PMU_PUSHES_USERS.clear()
 
 class RaceStatus(Enum):
     EN_ATTENTE = "en_attente"

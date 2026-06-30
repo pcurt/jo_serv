@@ -24,7 +24,7 @@ PMU_PUSHES: Dict[str, int] = {}
 PMU_PUSHES_USERS: Dict[str, int] = {}
 PMU_PUSH_MUTEX = Lock()
 PMU_NOTIF_MUTEX = Lock()  # Mutex 
-MAX_BOOST_PER_TICK = 12
+MAX_BOOST_PER_TICK = 30
 
 
 def consume_pushes(nom: str) -> int:

@@ -52,7 +52,7 @@ class RaceStatus(Enum):
     EN_COURS = "en_cours"
     TERMINEE = "terminee"
 
-RACE_STATUS = RaceStatus.EN_COURS # global variable
+RACE_STATUS = RaceStatus.EN_ATTENTE # global variable
 class Cheval:
     def __init__(
         self,

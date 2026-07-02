@@ -150,6 +150,8 @@ class Cheval:
             logging.info(f"Push ignored for {cheval_name} by {username}: race not in progress")
             with PMU_PUSH_MUTEX:
                 return PMU_PUSH_MUTEX
+        else:
+            logging.info(f"Push registered for {cheval_name} by {username}, because race is in {RACE_STATUS}")
         nom = cheval_name.strip().strip('"')
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:

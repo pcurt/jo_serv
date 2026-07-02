@@ -162,7 +162,8 @@ class Cheval:
                 PMU_PUSHES_USERS[username][nom] = PMU_PUSHES_USERS[username].get(nom, 0) + 1
                 if PMU_PUSHES_USERS[username][nom] > 300:
                     logging.info("Cheater detected : " + username + " pushed " + nom + " more than 300 times")
-
+                    # Apply penalty
+                    PMU_PUSHES_USERS[username]["tricheur"] = 0
             return PMU_PUSHES_USERS
 class Race:
     def __init__(self, race_id: str, chevaux: List[Cheval], distance: int = 2000):

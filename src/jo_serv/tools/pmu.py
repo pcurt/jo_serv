@@ -145,6 +145,7 @@ class Cheval:
         qui permet d'absorber un grand nombre de clics simultanés. Le boost
         sera appliqué au prochain tour de simulation via ``avancer``.
         """
+        global RACE_STATUS
         if RACE_STATUS != RaceStatus.EN_COURS:
             logging.info(f"Push ignored for {cheval_name} by {username}: race not in progress")
             with PMU_PUSH_MUTEX:
@@ -298,7 +299,7 @@ def get_leaderboard(data_dir: str) -> List[Dict]:
 def simuler_course(race: Race, data_dir: str = None):
     """Simule une course de chevaux et sauvegarde l'état"""
     pmu_lock = _get_pmu_lock() if data_dir else None
-
+    global RACE_STATUS
     RACE_STATUS = RaceStatus.EN_COURS
     race.status = RaceStatus.EN_COURS
     if data_dir:
@@ -553,7 +554,7 @@ def save_bet(data_dir: str, race_id: str, username: str, cheval_nom: str) -> boo
         race = Race.load_from_file(data_dir, race_id)
         
         # Vérifier que la course est toujours en attente
-        if RACE_STATUS != RaceStatus.EN_ATTENTE:
+        if race.status != RaceStatus.EN_ATTENTE:
             return False
         
         # Trouver le cheval et ajouter le username à sa liste de paris

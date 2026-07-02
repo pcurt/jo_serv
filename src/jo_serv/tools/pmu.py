@@ -133,7 +133,7 @@ class Cheval:
         boost = max(boost, MAX_BOOST_PER_TICK)
         avance = random.uniform(
             distance_course / (COURSE_DURATION_S * 5) + boost,
-            distance_course / COURSE_DURATION_S + boost,
+            distance_course / COURSE_DURATION_S + boost*2,
         )
         self.position += avance
 

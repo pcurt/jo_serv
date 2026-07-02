@@ -26,6 +26,7 @@ PMU_PUSH_MUTEX = Lock()
 PMU_NOTIF_MUTEX = Lock()  # Mutex 
 MAX_BOOST_PER_TICK = 30
 
+noms_chevaux=('Tornafion','Cluedo','Friedrich','Maaaarc','Gazou','Whisky','Delfino','Florence')
 
 
 def consume_pushes(nom: str) -> int:
@@ -153,7 +154,7 @@ class Cheval:
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
             if nom != "status": # status is only out of race to get the number of pushes by users
-                if nom not in chevaux_exemple:
+                if nom not in noms_chevaux:
                     logging.warning(f"Push ignored for {nom} by {username}: cheval not found")
                     return PMU_PUSHES_USERS
                 PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1

@@ -147,11 +147,8 @@ class Cheval:
         """
         global RACE_STATUS
         if RACE_STATUS != RaceStatus.EN_COURS:
-            logging.info(f"Push ignored for {cheval_name} by {username}: race not in progress")
             with PMU_PUSH_MUTEX:
                 return PMU_PUSH_MUTEX
-        else:
-            logging.info(f"Push registered for {cheval_name} by {username}, because race is in {RACE_STATUS}")
         nom = cheval_name.strip().strip('"')
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
@@ -163,6 +160,9 @@ class Cheval:
                 if username not in PMU_PUSHES_USERS:
                     PMU_PUSHES_USERS[username] = {}
                 PMU_PUSHES_USERS[username][nom] = PMU_PUSHES_USERS[username].get(nom, 0) + 1
+                if PMU_PUSHES_USERS[username][nom] > 300:
+                    logging.info("Cheater detected : " + username + " pushed " + nom + " more than 300 times")
+
             return PMU_PUSHES_USERS
 class Race:
     def __init__(self, race_id: str, chevaux: List[Cheval], distance: int = 2000):

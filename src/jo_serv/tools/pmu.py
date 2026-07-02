@@ -156,6 +156,9 @@ class Cheval:
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
             if nom != "status": # status is only out of race to get the number of pushes by users
+                if nom not in chevaux_exemple:
+                    logging.warning(f"Push ignored for {nom} by {username}: cheval not found")
+                    return PMU_PUSH_MUTEX
                 PMU_PUSHES[nom] = PMU_PUSHES.get(nom, 0) + 1
                 if username not in PMU_PUSHES_USERS:
                     PMU_PUSHES_USERS[username] = {}

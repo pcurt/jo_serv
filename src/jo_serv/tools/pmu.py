@@ -27,6 +27,7 @@ PMU_NOTIF_MUTEX = Lock()  # Mutex
 MAX_BOOST_PER_TICK = 30
 
 
+
 def consume_pushes(nom: str) -> int:
     """Récupère puis remet à zéro le nombre de pushes d'un cheval.
 
@@ -51,7 +52,7 @@ class RaceStatus(Enum):
     EN_COURS = "en_cours"
     TERMINEE = "terminee"
 
-
+RACE_STATUS = RaceStatus.EN_COURS # global variable
 class Cheval:
     def __init__(
         self,
@@ -144,6 +145,10 @@ class Cheval:
         qui permet d'absorber un grand nombre de clics simultanés. Le boost
         sera appliqué au prochain tour de simulation via ``avancer``.
         """
+        if RACE_STATUS != RaceStatus.EN_COURS:
+            logging.info(f"Push ignored for {cheval_name} by {username}: race not in progress")
+            with PMU_PUSH_MUTEX:
+                return PMU_PUSH_MUTEX
         nom = cheval_name.strip().strip('"')
         # print("Pushed cheval:", nom)
         with PMU_PUSH_MUTEX:
@@ -159,6 +164,7 @@ class Race:
         self.chevaux = chevaux
         self.distance = distance
         self.status = RaceStatus.EN_ATTENTE
+        RACE_STATUS = RaceStatus.EN_ATTENTE
         self.tour = 0
         self.gagnant = None
         self.course_suivante = 0
@@ -184,7 +190,7 @@ class Race:
             chevaux=chevaux,
             distance=data.get("distance", 2000),
         )
-        race.status = RaceStatus(data["status"])
+        RACE_STATUS = RaceStatus(data["status"])
         race.tour = data.get("tour", 0)
         race.gagnant = data.get("gagnant")
         race.course_suivante = data.get("course_suivante", 0)
@@ -293,6 +299,7 @@ def simuler_course(race: Race, data_dir: str = None):
     """Simule une course de chevaux et sauvegarde l'état"""
     pmu_lock = _get_pmu_lock() if data_dir else None
 
+    RACE_STATUS = RaceStatus.EN_COURS
     race.status = RaceStatus.EN_COURS
     if data_dir:
         with pmu_lock:
@@ -321,6 +328,7 @@ def simuler_course(race: Race, data_dir: str = None):
             # print(f"{gagnant.nom}")
             # print(f"Distance : {gagnant.position:.1f} m")
             
+            RACE_STATUS = RaceStatus.TERMINEE
             race.status = RaceStatus.TERMINEE
             race.gagnant = gagnant.nom
             if data_dir:
@@ -545,7 +553,7 @@ def save_bet(data_dir: str, race_id: str, username: str, cheval_nom: str) -> boo
         race = Race.load_from_file(data_dir, race_id)
         
         # Vérifier que la course est toujours en attente
-        if race.status != RaceStatus.EN_ATTENTE:
+        if RACE_STATUS != RaceStatus.EN_ATTENTE:
             return False
         
         # Trouver le cheval et ajouter le username à sa liste de paris

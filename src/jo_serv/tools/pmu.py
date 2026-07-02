@@ -131,7 +131,7 @@ class Cheval:
         boost = consume_pushes(self.nom)
         boost = max(boost, MAX_BOOST_PER_TICK)
         avance = random.uniform(
-            distance_course / (COURSE_DURATION_S * 5) + boost/2,
+            distance_course / (COURSE_DURATION_S * 5) + boost,
             distance_course / COURSE_DURATION_S + boost,
         )
         self.position += avance
